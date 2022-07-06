@@ -32,6 +32,7 @@ from litex.build.openocd import OpenOCD
 from litex.soc.interconnect.csr import *
 from litex.soc.integration.soc_core import *
 from litex.soc.integration.builder import *
+from litex.soc.interconnect import stream
 
 from litex.soc.cores.clock import *
 from litex.soc.cores.led import LedChaser
@@ -43,6 +44,9 @@ from litedram.phy import s7ddrphy
 
 from litepcie.phy.s7pciephy import S7PCIEPHY
 from litepcie.software import generate_litepcie_software
+
+from peripherals.had1511_adc import HAD1511ADC
+from peripherals.trigger import Trigger
 
 # IOs ----------------------------------------------------------------------------------------------
 
@@ -194,6 +198,12 @@ class BaseSoC(SoCCore):
         self.submodules.dna = DNA()
         self.dna.add_timing_constraints(platform, sys_clk_freq, self.crg.cd_sys.clk)
 
+        # Leds -------------------------------------------------------------------------------------
+        self.submodules.leds = LedChaser(
+            pads         = platform.request_all("user_led"),
+            sys_clk_freq = sys_clk_freq
+        )
+
         # PCIe -------------------------------------------------------------------------------------
         self.submodules.pcie_phy = S7PCIEPHY(platform, platform.request("pcie_x4"),
             data_width = 128,
@@ -212,10 +222,31 @@ class BaseSoC(SoCCore):
         self.icap.add_reload()
         self.icap.add_timing_constraints(platform, sys_clk_freq, self.crg.cd_sys.clk)
 
-        # Leds -------------------------------------------------------------------------------------
-        self.submodules.leds = LedChaser(
-         pads         = platform.request_all("user_led"),
-         sys_clk_freq = sys_clk_freq)
+
+        # Frontend / ADC ---------------------------------------------------------------------------
+
+        # Frontend.
+        # TODO.
+
+        # SPI.
+        # TODO.
+
+        # Trigger.
+        self.submodules.trigger = Trigger()
+
+        # ADC.
+        self.submodules.adc = HAD1511ADC(self.platform.request("adc_data"), sys_clk_freq, polarity=1)
+        self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
+        self.submodules.conv = stream.Converter(64, self.pcie_phy.data_width)
+        self.comb += self.gate.enable.eq(self.trigger.enable)
+
+        # Datapath ---------------------------------------------------------------------------------
+        self.submodules += stream.Pipeline(
+            self.adc,
+            self.gate,
+            self.conv,
+            self.pcie_dma0.sink,
+        )
 
 # Build --------------------------------------------------------------------------------------------
 
