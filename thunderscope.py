@@ -51,7 +51,7 @@ _io = [
     ("user_led", 0, Pins("P6"), IOStandard("LVCMOS33")),
     ("user_led", 1, Pins("N6"), IOStandard("LVCMOS33")),
 
-    # PCIe.
+    # PCIe / Gen2 X4.
     ("pcie_x4", 0,
         Subsignal("rst_n", Pins("L2"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
         Subsignal("clk_p", Pins("B6")),
@@ -60,6 +60,55 @@ _io = [
         Subsignal("rx_n",  Pins("E3 A3 C3 G3")),
         Subsignal("tx_p",  Pins("H2 F2 D2 B2")),
         Subsignal("tx_n",  Pins("H1 F1 D1 B1")),
+    ),
+
+    # PGA.
+    ("pga", 0,
+        Subsignal("sdio", Pins("L3")),
+        Subsignal("sclk", Pins("K2")),
+        Subsignal("cs",   Pins("M1 M5 R3 P5")),
+        IOStandard("LVCMOS33"),
+    ),
+
+    # Atten.
+    ("atten", 0, Pins("P4 M2 P1 K1"), IOStandard("LVCMOS33")),
+
+    # DC Coupling.
+    ("dc_cpl", 0, Pins("P3 N2 T2 K3"), IOStandard("LVCMOS33")),
+
+    # I2C.
+    ("i2c", 0,
+        Subsignal("sda", Pins("N4")),
+        Subsignal("scl", Pins("K5")),
+        IOStandard("LVCMOS33"),
+    ),
+
+    # Frontend.
+    ("probe_comp", 0, Pins("N1"), IOStandard("LVCMOS33")),
+    ("fe_pg",      0, Pins("J5"), IOStandard("LVCMOS33")),
+    ("osc_oe",     0, Pins("N3"), IOStandard("LVCMOS33")),
+    ("acq_en",     0, Pins("M4"), IOStandard("LVCMOS33")),
+    ("fe_en",      0, Pins("K6"), IOStandard("LVCMOS33")),
+
+    # ADC / HMCAD1511.
+    ("adc_ctrl", 0,
+        Subsignal("pd",    Pins("L4")),
+        Subsignal("pg",    Pins("R6")),
+        Subsignal("rst_n", Pins("M6")),
+        Subsignal("cs",    Pins("J4")),
+        Subsignal("sclk",  Pins("J6")),
+        Subsignal("sdata", Pins("L5")),
+        IOStandard("LVCMOS33"),
+    ),
+    ("adc_data", 0,
+        Subsignal("lclk_p", Pins("R2")), # Bitclock.
+        Subsignal("lclk_n", Pins("R1")),
+        Subsignal("fclk_p", Pins("U2")), # Frameclock.
+        Subsignal("fclk_n", Pins("U1")),
+        Subsignal("d_p", Pins("U4 V3 U7 V8 R5 T4 U6 R7")), # Data.
+        Subsignal("d_n", Pins("V4 V2 V6 V7 T5 T3 U5 T7")),
+        IOStandard("LVDS_25"),
+        Misc("DIFF_TERM=TRUE"),
     ),
 ]
 
