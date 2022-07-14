@@ -52,8 +52,10 @@ from peripherals.trigger import Trigger
 
 _io = [
     # Leds.
-    ("user_led", 0, Pins("P6"), IOStandard("LVCMOS33")),
-    ("user_led", 1, Pins("N6"), IOStandard("LVCMOS33")),
+    ("user_led", 0, Pins("U21"), IOStandard("LVCMOS33")), # Green.
+    ("user_led", 1, Pins("R17"), IOStandard("LVCMOS33")), # Red.
+    ("user_led", 2, Pins("Y22"), IOStandard("LVCMOS33")), # Green.
+    ("user_led", 3, Pins("T21"), IOStandard("LVCMOS33")), # Red.
 
     # PCIe / Gen2 X4.
     ("pcie_x4", 0,
@@ -120,7 +122,7 @@ _io = [
 
 class Platform(XilinxPlatform):
     def __init__(self, toolchain="vivado"):
-        XilinxPlatform.__init__(self, "xc7a35tcsg325-2", _io, toolchain=toolchain)
+        XilinxPlatform.__init__(self, "xc7a100tfgg484-2", _io, toolchain=toolchain)
 
         self.toolchain.bitstream_commands = [
             "set_property BITSTREAM.CONFIG.SPI_BUSWIDTH 4 [current_design]",
