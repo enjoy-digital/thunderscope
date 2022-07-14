@@ -178,7 +178,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6)):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -205,48 +205,51 @@ class BaseSoC(SoCCore):
         )
 
         # PCIe -------------------------------------------------------------------------------------
-        self.submodules.pcie_phy = S7PCIEPHY(platform, platform.request("pcie_x4"),
-            data_width = 128,
-            bar0_size  = 0x20000)
-        self.add_pcie(phy=self.pcie_phy, ndmas=4, dma_buffering_depth=1024, max_pending_requests=4)
-        # FIXME: Apply it to all targets (integrate it in LitePCIe?).
-        platform.add_period_constraint(self.crg.cd_sys.clk, 1e9/sys_clk_freq)
-        platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks userclk2] -asynchronous", sys_clk=self.crg.cd_sys.clk)
-        platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_125mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
-        platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_250mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
-        platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks clk_125mhz] -group [get_clocks clk_250mhz] -asynchronous")
+        if with_pcie:
+            self.submodules.pcie_phy = S7PCIEPHY(platform, platform.request("pcie_x4"),
+                data_width = 128,
+                bar0_size  = 0x20000)
+            self.add_pcie(phy=self.pcie_phy, ndmas=4, dma_buffering_depth=1024, max_pending_requests=4)
+            # FIXME: Apply it to all targets (integrate it in LitePCIe?).
+            platform.add_period_constraint(self.crg.cd_sys.clk, 1e9/sys_clk_freq)
+            platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks userclk2] -asynchronous", sys_clk=self.crg.cd_sys.clk)
+            platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_125mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
+            platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_250mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
+            platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks clk_125mhz] -group [get_clocks clk_250mhz] -asynchronous")
 
-        # ICAP (For FPGA reload over PCIe).
-        from litex.soc.cores.icap import ICAP
-        self.submodules.icap = ICAP()
-        self.icap.add_reload()
-        self.icap.add_timing_constraints(platform, sys_clk_freq, self.crg.cd_sys.clk)
+            # ICAP (For FPGA reload over PCIe).
+            from litex.soc.cores.icap import ICAP
+            self.submodules.icap = ICAP()
+            self.icap.add_reload()
+            self.icap.add_timing_constraints(platform, sys_clk_freq, self.crg.cd_sys.clk)
 
 
         # Frontend / ADC ---------------------------------------------------------------------------
 
-        # Frontend.
-        # TODO.
+        if with_adc:
 
-        # SPI.
-        # TODO.
+            # Frontend.
+            # TODO.
 
-        # Trigger.
-        self.submodules.trigger = Trigger()
+            # SPI.
+            # TODO.
 
-        # ADC.
-        self.submodules.adc = HAD1511ADC(self.platform.request("adc_data"), sys_clk_freq, polarity=1)
-        self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
-        self.submodules.conv = stream.Converter(64, self.pcie_phy.data_width)
-        self.comb += self.gate.enable.eq(self.trigger.enable)
+            # Trigger.
+            self.submodules.trigger = Trigger()
 
-        # Datapath ---------------------------------------------------------------------------------
-        self.submodules += stream.Pipeline(
-            self.adc,
-            self.gate,
-            self.conv,
-            self.pcie_dma0.sink,
-        )
+            # ADC.
+            self.submodules.adc = HAD1511ADC(self.platform.request("adc_data"), sys_clk_freq, polarity=1)
+            self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
+            self.submodules.conv = stream.Converter(64, self.pcie_phy.data_width)
+            self.comb += self.gate.enable.eq(self.trigger.enable)
+
+            # Datapath ---------------------------------------------------------------------------------
+            self.submodules += stream.Pipeline(
+                self.adc,
+                self.gate,
+                self.conv,
+                self.pcie_dma0.sink,
+            )
 
 # Build --------------------------------------------------------------------------------------------
 
