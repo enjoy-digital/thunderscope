@@ -52,10 +52,10 @@ from peripherals.trigger import Trigger
 
 _io = [
     # Leds.
-    ("user_led", 0, Pins("U21"), IOStandard("LVCMOS33")), # Green.
-    ("user_led", 1, Pins("R17"), IOStandard("LVCMOS33")), # Red.
-    ("user_led", 2, Pins("Y22"), IOStandard("LVCMOS33")), # Green.
-    ("user_led", 3, Pins("T21"), IOStandard("LVCMOS33")), # Red.
+    ("user_led_n", 0, Pins("U21"), IOStandard("LVCMOS33")), # Green.
+    ("user_led_n", 1, Pins("R17"), IOStandard("LVCMOS33")), # Red.
+    ("user_led_n", 2, Pins("Y22"), IOStandard("LVCMOS33")), # Green.
+    ("user_led_n", 3, Pins("T21"), IOStandard("LVCMOS33")), # Red.
 
     # PCIe / Gen2 X4.
     ("pcie_x4", 0,
@@ -206,9 +206,11 @@ class BaseSoC(SoCCore):
 
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = platform.request_all("user_led"),
-            sys_clk_freq = sys_clk_freq
+            pads         = platform.request_all("user_led_n"),
+            sys_clk_freq = sys_clk_freq,
+            polarity     = 1,
         )
+        self.leds.add_pwm(default_width=128, default_period=1024) # Default to 1/8 to reduce brightness.
 
         # PCIe -------------------------------------------------------------------------------------
         if with_pcie:
