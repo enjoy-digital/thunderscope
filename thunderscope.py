@@ -180,7 +180,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -192,6 +192,10 @@ class BaseSoC(SoCCore):
             cpu_type  = None,
             ident     = "LitePCIe SoC on ThunderScope"
         )
+
+        # JTAGBone ---------------------------------------------------------------------------------
+        if with_jtagbone:
+            self.add_jtagbone()
 
         # XADC -------------------------------------------------------------------------------------
         self.submodules.xadc = XADC()
@@ -267,7 +271,7 @@ def main():
 
     soc = BaseSoC()
 
-    builder  = Builder(soc)
+    builder  = Builder(soc, csr_csv="csr.csv")
     builder.build(run=args.build)
 
     if args.driver:
