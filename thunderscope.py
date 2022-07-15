@@ -38,6 +38,7 @@ from litex.soc.cores.clock import *
 from litex.soc.cores.led import LedChaser
 from litex.soc.cores.xadc import XADC
 from litex.soc.cores.dna  import DNA
+from litex.soc.cores.bitbang import I2CMaster
 
 from litedram.modules import MT41K512M16
 from litedram.phy import s7ddrphy
@@ -82,10 +83,10 @@ _io = [
     # DC Coupling.
     ("dc_cpl", 0, Pins("P3 N2 T2 K3"), IOStandard("LVCMOS33")),
 
-    # I2C.
+    # I2C bus.
     ("i2c", 0,
-        Subsignal("sda", Pins("N4")),
-        Subsignal("scl", Pins("K5")),
+        Subsignal("sda", Pins("J14")),
+        Subsignal("scl", Pins("H14")),
         IOStandard("LVCMOS33"),
     ),
 
@@ -180,7 +181,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_adc=False, with_jtagbone=True):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -188,9 +189,11 @@ class BaseSoC(SoCCore):
 
         # SoCCore ----------------------------------------------------------------------------------
         SoCCore.__init__(self, platform, sys_clk_freq,
-            uart_name = "stub",
-            cpu_type  = None,
-            ident     = "LitePCIe SoC on ThunderScope"
+            uart_name           = "crossover",
+            cpu_type            = "vexriscv",
+            integrated_rom_size = 0x10000,
+            ident               = "LitePCIe SoC on ThunderScope",
+            ident_version       = True,
         )
 
         # JTAGBone ---------------------------------------------------------------------------------
@@ -234,6 +237,11 @@ class BaseSoC(SoCCore):
 
 
         # Frontend / ADC ---------------------------------------------------------------------------
+
+        # I2C Bus:
+        # - Trim DAC (MCP4728 @ 0x61).
+        # - PLL      (LMK61E2 @ 0x58).
+        self.submodules.i2c0 = I2CMaster(platform.request("i2c"))
 
         if with_adc:
 
