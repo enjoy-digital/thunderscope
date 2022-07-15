@@ -59,13 +59,13 @@ _io = [
 
     # PCIe / Gen2 X4.
     ("pcie_x4", 0,
-        Subsignal("rst_n", Pins("L2"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
-        Subsignal("clk_p", Pins("B6")),
-        Subsignal("clk_n", Pins("B5")),
-        Subsignal("rx_p",  Pins("E4 A4 C4 G4")),
-        Subsignal("rx_n",  Pins("E3 A3 C3 G3")),
-        Subsignal("tx_p",  Pins("H2 F2 D2 B2")),
-        Subsignal("tx_n",  Pins("H1 F1 D1 B1")),
+        Subsignal("rst_n", Pins("V14"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
+        Subsignal("clk_p", Pins("F10")),
+        Subsignal("clk_n", Pins("E10")),
+        Subsignal("rx_p",  Pins("D9 B10 D11 D8")),
+        Subsignal("rx_n",  Pins("C9 A10 C11 A8")),
+        Subsignal("tx_p",  Pins("D7 B6 D5 B4")),
+        Subsignal("tx_n",  Pins("C7 A6 C5 A4")),
     ),
 
     # PGA.
@@ -180,7 +180,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False, with_jtagbone=True):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_adc=False, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -216,8 +216,9 @@ class BaseSoC(SoCCore):
         if with_pcie:
             self.submodules.pcie_phy = S7PCIEPHY(platform, platform.request("pcie_x4"),
                 data_width = 128,
-                bar0_size  = 0x20000)
-            self.add_pcie(phy=self.pcie_phy, ndmas=4, dma_buffering_depth=1024, max_pending_requests=4)
+                bar0_size  = 0x20000
+            )
+            self.add_pcie(phy=self.pcie_phy, ndmas=1, dma_buffering_depth=8192)
             # FIXME: Apply it to all targets (integrate it in LitePCIe?).
             platform.add_period_constraint(self.crg.cd_sys.clk, 1e9/sys_clk_freq)
             platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks userclk2] -asynchronous", sys_clk=self.crg.cd_sys.clk)
