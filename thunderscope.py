@@ -6,21 +6,6 @@
 # Copyright (c) 2022 Florent Kermarrec <florent@enjoy-digital.fr>
 # SPDX-License-Identifier: BSD-2-Clause
 
-# Build/Use ----------------------------------------------------------------------------------------
-# ./thunderscope.py --driver --build --load
-
-#.Build the kernel and load it:
-# cd build/<platform>/driver/kernel
-# make
-# sudo ./init.sh
-#
-# Test userspace utilities:
-# cd build/<platform>/driver/user
-# make
-# ./litepcie_util info
-# ./litepcie_util scratch_test
-# ./litepcie_util dma_test
-
 import os
 
 from migen import *
@@ -193,23 +178,17 @@ class CRG(Module):
 
 # BaseSoC -----------------------------------------------------------------------------------------
 
-class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_frontend=True, with_adc=False, with_jtagbone=True):
+class BaseSoC(SoCMini):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=False, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = CRG(platform, sys_clk_freq)
 
-        # SoCCore ----------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, sys_clk_freq,
-            #uart_name           = "crossover",
-            #cpu_type            = "vexriscv",
-            #integrated_rom_size = 0x10000,
-            uart_name           = "stub",
-            cpu_type            = None,
-            integrated_rom_size = 0x0,
-            ident               = "LitePCIe SoC on ThunderScope",
-            ident_version       = True,
+        # SoCMini ----------------------------------------------------------------------------------
+        SoCMini.__init__(self, platform, sys_clk_freq,
+            ident         = "LitePCIe SoC on ThunderScope",
+            ident_version = True,
         )
 
         # JTAGBone ---------------------------------------------------------------------------------
