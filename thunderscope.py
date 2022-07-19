@@ -202,9 +202,12 @@ class BaseSoC(SoCCore):
 
         # SoCCore ----------------------------------------------------------------------------------
         SoCCore.__init__(self, platform, sys_clk_freq,
-            uart_name           = "crossover",
-            cpu_type            = "vexriscv",
-            integrated_rom_size = 0x10000,
+            #uart_name           = "crossover",
+            #cpu_type            = "vexriscv",
+            #integrated_rom_size = 0x10000,
+            uart_name           = "stub",
+            cpu_type            = None,
+            integrated_rom_size = 0x0,
             ident               = "LitePCIe SoC on ThunderScope",
             ident_version       = True,
         )
@@ -254,7 +257,7 @@ class BaseSoC(SoCCore):
         # I2C Bus:
         # - Trim DAC (MCP4728 @ 0x61).
         # - PLL      (LMK61E2 @ 0x58).
-        self.submodules.i2c0 = I2CMaster(platform.request("i2c"))
+        self.submodules.i2c = I2CMaster(platform.request("i2c"))
 
         # Frontend.
         if with_frontend:
@@ -320,7 +323,7 @@ def main():
 
     soc = BaseSoC()
 
-    builder  = Builder(soc, csr_csv="csr.csv")
+    builder  = Builder(soc, csr_csv="test/csr.csv")
     builder.build(run=args.build)
 
     if args.driver:
