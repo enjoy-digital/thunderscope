@@ -242,14 +242,14 @@ class BaseSoC(SoCMini):
         if with_frontend:
             # AC/DC Coupling (Discrete IOs).
             self.submodules.fe_coupling = GPIOOut(
-                pads    = platform.request("fe_coupling"),
-                default = 0b0000,
+                pads  = platform.request("fe_coupling"),
+                reset = 0b0000,
             )
 
             # Attenuation (Discrete IOs).
             self.submodules.fe_attenuation = GPIOOut(
-                pads    = platform.request("fe_attenuation"),
-                default = 0b0000,
+                pads  = platform.request("fe_attenuation"),
+                reset = 0b0000,
             )
 
             # Programmable Gain Amplifier (LMH6518/SPI).
