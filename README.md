@@ -14,7 +14,7 @@
 LiteX based FPGA gateware for Thunderscope.
 ===========================================
 
-This repo aims to provide a LiteX based gatwae for Thunderscope hardware.
+This repo aims to provide a LiteX based gateware for Thunderscope hardware.
 
 <p align="center"><img src="https://user-images.githubusercontent.com/1450143/179495534-4c54973b-9203-4893-9eaa-d9177413e9bf.png" width="800"></p>
 
@@ -41,6 +41,18 @@ $ ./thunderscope --build --load
 
 [> Open LiteX server
 --------------------
+Over JTAGBone:
 ```sh
 $ litex_server.py --jtag --jtag-config=openocd_xc7_ft232.cfg
+```
+Over PCIeBone:
+```sh
+$ litex_server --pcie --pcie-bar=03:00.0
+```
+
+[> Run test scripts
+-------------------
+```sh
+$ cd test
+$ ./i2c_test --scan
 ```
