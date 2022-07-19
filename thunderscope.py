@@ -39,9 +39,8 @@ from litex.soc.cores.led import LedChaser
 from litex.soc.cores.xadc import XADC
 from litex.soc.cores.dna  import DNA
 from litex.soc.cores.bitbang import I2CMaster
-
-from litedram.modules import MT41K512M16
-from litedram.phy import s7ddrphy
+from litex.soc.cores.gpio import GPIOOut
+from litex.soc.cores.spi import SPIMaster
 
 from litepcie.phy.s7pciephy import S7PCIEPHY
 from litepcie.software import generate_litepcie_software
@@ -53,12 +52,14 @@ from peripherals.trigger import Trigger
 
 _io = [
     # Leds.
+    # -----
     ("user_led_n", 0, Pins("U21"), IOStandard("LVCMOS33")), # Green.
     ("user_led_n", 1, Pins("R17"), IOStandard("LVCMOS33")), # Red.
     ("user_led_n", 2, Pins("Y22"), IOStandard("LVCMOS33")), # Green.
     ("user_led_n", 3, Pins("T21"), IOStandard("LVCMOS33")), # Red.
 
     # PCIe / Gen2 X4.
+    # ---------------
     ("pcie_x4", 0,
         Subsignal("rst_n", Pins("V14"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
         Subsignal("clk_p", Pins("F10")),
@@ -69,35 +70,45 @@ _io = [
         Subsignal("tx_n",  Pins("C7 A6 C5 A4")),
     ),
 
-    # PGA.
-    ("pga", 0,
-        Subsignal("sdio", Pins("L3")),
-        Subsignal("sclk", Pins("K2")),
-        Subsignal("cs",   Pins("M1 M5 R3 P5")),
-        IOStandard("LVCMOS33"),
-    ),
-
-    # Atten.
-    ("atten", 0, Pins("P4 M2 P1 K1"), IOStandard("LVCMOS33")),
-
-    # DC Coupling.
-    ("dc_cpl", 0, Pins("P3 N2 T2 K3"), IOStandard("LVCMOS33")),
-
-    # I2C bus.
-    ("i2c", 0,
-        Subsignal("sda", Pins("J14")),
-        Subsignal("scl", Pins("H14")),
-        IOStandard("LVCMOS33"),
-    ),
-
     # Frontend.
+    # ---------
+
+    # Coupling.
+    ("fe_coupling", 0, Pins("H22 L19 H19 N20"), IOStandard("LVCMOS33")),
+
+    # Attenuation.
+    ("fe_attenuation", 0, Pins("H20 K19 J19 M21"), IOStandard("LVCMOS33")),
+
+    # Programmable Gain Amplifier.
+    ("fe_pga", 0,
+        Subsignal("clk",  Pins("K21")),
+        Subsignal("cs_n", Pins("G20 K18 L20 L21")),
+        Subsignal("mosi", Pins("K22")),
+        IOStandard("LVCMOS33"),
+    ),
+
+    # Misc / TBD.
     ("probe_comp", 0, Pins("N1"), IOStandard("LVCMOS33")),
     ("fe_pg",      0, Pins("J5"), IOStandard("LVCMOS33")),
     ("osc_oe",     0, Pins("N3"), IOStandard("LVCMOS33")),
     ("acq_en",     0, Pins("M4"), IOStandard("LVCMOS33")),
     ("fe_en",      0, Pins("K6"), IOStandard("LVCMOS33")),
 
+
+    # I2C bus.
+    # --------
+    # - Trim DAC (MCP4728 @ 0x61).
+    # - PLL      (LMK61E2 @ 0x58).
+    ("i2c", 0,
+        Subsignal("sda", Pins("J14")),
+        Subsignal("scl", Pins("H14")),
+        IOStandard("LVCMOS33"),
+    ),
+
     # ADC / HMCAD1511.
+    # ----------------
+
+    # Control.
     ("adc_ctrl", 0,
         Subsignal("pd",    Pins("L4")),
         Subsignal("pg",    Pins("R6")),
@@ -107,6 +118,8 @@ _io = [
         Subsignal("sdata", Pins("L5")),
         IOStandard("LVCMOS33"),
     ),
+
+    # Datapath.
     ("adc_data", 0,
         Subsignal("lclk_p", Pins("R2")), # Bitclock.
         Subsignal("lclk_n", Pins("R1")),
@@ -181,7 +194,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCCore):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_adc=False, with_jtagbone=True):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=False, with_frontend=True, with_adc=False, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -243,6 +256,31 @@ class BaseSoC(SoCCore):
         # - PLL      (LMK61E2 @ 0x58).
         self.submodules.i2c0 = I2CMaster(platform.request("i2c"))
 
+        # Frontend.
+        if with_frontend:
+            # AC/DC Coupling (Discrete IOs).
+            self.submodules.fe_coupling = GPIOOut(
+                pads    = platform.request("fe_coupling"),
+                default = 0b0000,
+            )
+
+            # Attenuation (Discrete IOs).
+            self.submodules.fe_attenuation = GPIOOut(
+                pads    = platform.request("fe_attenuation"),
+                default = 0b0000,
+            )
+
+            # Programmable Gain Amplifier (LMH6518/SPI).
+            fe_pga_pads = self.platform.request("fe_pga")
+            fe_pga_pads.miso = Signal()
+            self.submodules.spi = SPIMaster(
+                pads         = fe_pga_pads,
+                data_width   = 24,
+                sys_clk_freq = self.sys_clk_freq,
+                spi_clk_freq = 1e6
+            )
+
+        # ADC.
         if with_adc:
 
             # Frontend.
