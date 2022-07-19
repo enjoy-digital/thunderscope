@@ -97,13 +97,13 @@ class BitBangI2C:
 
 # I2C Scan Test ------------------------------------------------------------------------------------
 
-def i2c_scan_test():
-    bus = RemoteClient()
+def i2c_scan_test(host, port):
+    bus = RemoteClient(host=host, port=port)
     bus.open()
 
     i2c = BitBangI2C(bus.regs)
 
-    print("       0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f", end="");
+    print("      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f", end="");
     sys.stdout.flush()
     for addr in range(0, 0x80):
         if (addr % 0x10) == 0:
@@ -119,11 +119,17 @@ def i2c_scan_test():
 
 def main():
     parser = argparse.ArgumentParser(description="I2C test utility")
+    parser.add_argument("--host",    default="localhost",   help="Host ip address")
+    parser.add_argument("--port",    default="1234",        help="Host bind port.")
+
     parser.add_argument("--scan", action="store_true", help="Scan I2C Bus.")
     args = parser.parse_args()
 
+    host = args.host
+    port = int(args.port, 0)
+
     if args.scan:
-        i2c_scan_test()
+        i2c_scan_test(host=host, port=port)
 
 if __name__ == "__main__":
     main()
