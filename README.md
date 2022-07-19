@@ -41,18 +41,19 @@ $ ./thunderscope --build --load
 
 [> Open LiteX server
 --------------------
-Over JTAGBone:
+Over JTAGBone (on local machine):
 ```sh
 $ litex_server.py --jtag --jtag-config=openocd_xc7_ft232.cfg
 ```
-Over PCIeBone:
+Over PCIeBone (on remote machine):
 ```sh
-$ litex_server --pcie --pcie-bar=03:00.0
+$ sudo litex_server --pcie --pcie-bar=03:00.0 --bind-ip=192.168.1.44
 ```
 
 [> Run test scripts
 -------------------
 ```sh
 $ cd test
-$ ./i2c_test --scan
+$ ./i2c_test --host=192.168.1.44 --scan
+$ ./i2c_test --host=192.168.1.44 --mcp4728-test
 ```
