@@ -57,3 +57,11 @@ $ cd test
 $ ./i2c_test --host=192.168.1.44 --scan
 $ ./i2c_test --host=192.168.1.44 --mcp4728-test
 ```
+
+[> Use Pi-Pico/Si5351 as Clk Generator
+--------------------------------------
+```sh
+$ cd test/pico_clkgen
+$ sudo ./pyboard.py -f cp si5351.py :
+$ sudo ./pyboard.py test_si5351.py
+```
