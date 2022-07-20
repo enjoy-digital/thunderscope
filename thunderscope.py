@@ -263,8 +263,8 @@ class BaseSoC(SoCMini):
                             ("``0b1``", "LDO enabled."),
                         ]),
                         CSRField("coupling",  offset=8, size=4, description="Frontend AC/DC Coupling.", values=[
-                            ("``0b0``", "AC-Coupling (one bit per channel)."), # CHECKME.
-                            ("``0b1``", "DC-Coupling (one bit per channel)."), # CHECKME.
+                            ("``0b0``", "AC-Coupling (one bit per channel)."),
+                            ("``0b1``", "DC-Coupling (one bit per channel)."),
                         ]),
                         CSRField("attenuation",  offset=16, size=4, description="Frontend Attenuation.", values=[
                             ("``0b0``", "TBD."), # FIXME.
