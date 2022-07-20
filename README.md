@@ -43,7 +43,7 @@ $ ./thunderscope --build --load
 --------------------
 Over JTAGBone (on local machine):
 ```sh
-$ litex_server.py --jtag --jtag-config=openocd_xc7_ft232.cfg
+$ litex_server --jtag --jtag-config=openocd_xc7_ft232.cfg
 ```
 Over PCIeBone (on remote machine):
 ```sh
