@@ -117,8 +117,9 @@ _io = [
         Subsignal("lclk_n", Pins("C19")),
         Subsignal("fclk_p", Pins("D17")), # Frameclock.
         Subsignal("fclk_n", Pins("C17")),
-        Subsignal("d_p", Pins("A15 B15 B17 A13 F16 D14 E13")), # Data. # FIXME: Handle inverted lanes.
-        Subsignal("d_n", Pins("A16 B16 B18 A14 E17 D15 E14")),
+        # Lanes polarity:       X   X       X   X   X   X   X      # (X=Inverted).
+        Subsignal("d_p", Pins("A15 B15 B17 A13 F16 D14 E13 F13")), # Data.
+        Subsignal("d_n", Pins("A16 B16 B18 A14 E17 D15 E14 F14")),
         IOStandard("LVDS_25"),
         Misc("DIFF_TERM=TRUE"),
     ),
@@ -376,7 +377,7 @@ class BaseSoC(SoCMini):
                     self.submodules.trigger = Trigger()
 
                     # HAD1511.
-                    self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, polarity=1)
+                    self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, lanes_polarity=[1, 1, 0, 1, 1, 1, 1, 1])
 
                     # Gate/Data-Width Converter.
                     self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
