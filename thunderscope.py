@@ -49,36 +49,36 @@ _io = [
         Subsignal("rst_n", Pins("V14"), IOStandard("LVCMOS33"), Misc("PULLUP=TRUE")),
         Subsignal("clk_p", Pins("F10")),
         Subsignal("clk_n", Pins("E10")),
-        Subsignal("rx_p",  Pins("D9 B10 D11 D8")),
+        Subsignal("rx_p",  Pins("D9 B10 D11 B8")),
         Subsignal("rx_n",  Pins("C9 A10 C11 A8")),
         Subsignal("tx_p",  Pins("D7 B6 D5 B4")),
         Subsignal("tx_n",  Pins("C7 A6 C5 A4")),
     ),
 
+    # Misc / TBD.
+    ("probe_comp", 0, Pins("N1"), IOStandard("LVCMOS33")),
+
     # Frontend.
     # ---------
 
-    # Coupling.
-    ("fe_coupling", 0, Pins("H22 L19 H19 N20"), IOStandard("LVCMOS33")),
-
-    # Attenuation.
-    ("fe_attenuation", 0, Pins("H20 K19 J19 M21"), IOStandard("LVCMOS33")),
-
-    # Programmable Gain Amplifier.
-    ("fe_pga", 0,
+    # Control / Status.
+    ("fe_control", 0,
+        Subsignal("ldo_en",      Pins("K6"), IOStandard("LVCMOS33")), # TPS7A9101/LDO & LM27761 Enable.
+        Subsignal("coupling",    Pins("H22 L19 H19 N20"), IOStandard("LVCMOS33")),
+        Subsignal("attenuation", Pins("H20 K19 J19 M21"), IOStandard("LVCMOS33")),
+        IOStandard("LVCMOS33"),
+    ),
+    ("fe_status", 0,
+        Subsignal("ldo_pg", Pins("J5"), IOStandard("LVCMOS33")), # TPS7A9101/LDO Power-Good.
+        IOStandard("LVCMOS33"),
+    ),
+    # Programmable Gain Amplifier SPI.
+    ("fe_pga_spi", 0,
         Subsignal("clk",  Pins("K21")),
         Subsignal("cs_n", Pins("G20 K18 L20 L21")),
         Subsignal("mosi", Pins("K22")),
         IOStandard("LVCMOS33"),
     ),
-
-    # Misc / TBD.
-    ("probe_comp", 0, Pins("N1"), IOStandard("LVCMOS33")),
-    ("fe_pg",      0, Pins("J5"), IOStandard("LVCMOS33")),
-    ("osc_oe",     0, Pins("N3"), IOStandard("LVCMOS33")),
-    ("acq_en",     0, Pins("M4"), IOStandard("LVCMOS33")),
-    ("fe_en",      0, Pins("K6"), IOStandard("LVCMOS33")),
-
 
     # I2C bus.
     # --------
@@ -93,25 +93,32 @@ _io = [
     # ADC / HMCAD1511.
     # ----------------
 
-    # Control.
-    ("adc_ctrl", 0,
-        Subsignal("pd",    Pins("L4")),
-        Subsignal("pg",    Pins("R6")),
-        Subsignal("rst_n", Pins("M6")),
-        Subsignal("cs",    Pins("J4")),
-        Subsignal("sclk",  Pins("J6")),
-        Subsignal("sdata", Pins("L5")),
+    # Control / Status / SPI.
+    ("adc_control", 0,
+        Subsignal("ldo_en", Pins("J20")), # TPS7A9101/LDO Enable.
+        Subsignal("pll_en", Pins("K14")), # LMK61E2/PLL Output Enable.
+        Subsignal("pd",     Pins("N19")), # ADC Power Down.
+        Subsignal("rst_n",  Pins("N18")), # ADC Reset.
         IOStandard("LVCMOS33"),
     ),
-
+    ("adc_status", 0,
+        Subsignal("ldo_pg", Pins("L18")), # TPS7A9101/LDO Power-Good.
+        IOStandard("LVCMOS33"),
+    ),
+    ("adc_spi", 0,
+        Subsignal("cs_n", Pins("M18")),
+        Subsignal("clk",  Pins("L16")),
+        Subsignal("mosi", Pins("K16")),
+        IOStandard("LVCMOS33"),
+    ),
     # Datapath.
     ("adc_data", 0,
-        Subsignal("lclk_p", Pins("R2")), # Bitclock.
-        Subsignal("lclk_n", Pins("R1")),
-        Subsignal("fclk_p", Pins("U2")), # Frameclock.
-        Subsignal("fclk_n", Pins("U1")),
-        Subsignal("d_p", Pins("U4 V3 U7 V8 R5 T4 U6 R7")), # Data.
-        Subsignal("d_n", Pins("V4 V2 V6 V7 T5 T3 U5 T7")),
+        Subsignal("lclk_p", Pins("C18")), # Bitclock.
+        Subsignal("lclk_n", Pins("C19")),
+        Subsignal("fclk_p", Pins("D17")), # Frameclock.
+        Subsignal("fclk_n", Pins("C17")),
+        Subsignal("d_p", Pins("A15 B15 B17 A13 F16 D14 E13")), # Data. # FIXME: Handle inverted lanes.
+        Subsignal("d_n", Pins("A16 B16 B18 A14 E17 D15 E14")),
         IOStandard("LVDS_25"),
         Misc("DIFF_TERM=TRUE"),
     ),
@@ -179,7 +186,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCMini):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=False, with_jtagbone=True):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=True, with_jtagbone=True):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -240,52 +247,152 @@ class BaseSoC(SoCMini):
 
         # Frontend.
         if with_frontend:
-            # AC/DC Coupling (Discrete IOs).
-            self.submodules.fe_coupling = GPIOOut(
-                pads  = platform.request("fe_coupling"),
-                reset = 0b0000,
-            )
 
-            # Attenuation (Discrete IOs).
-            self.submodules.fe_attenuation = GPIOOut(
-                pads  = platform.request("fe_attenuation"),
-                reset = 0b0000,
-            )
+            class Frontend(Module, AutoCSR):
+                def __init__(self, control_pads, status_pads, pga_spi_pads, sys_clk_freq, pga_spi_clk_freq=1e6):
+                    # Control/Status.
+                    self._control = CSRStorage(fields=[
+                        CSRField("ldo_en", offset=0, size=1, description="Frontend LDO-Enable.", values=[
+                            ("``0b0``", "LDO disabled."),
+                            ("``0b1``", "LDO enabled."),
+                        ]),
+                        CSRField("coupling",  offset=8, size=4, description="Frontend AC/DC Coupling.", values=[
+                            ("``0b0``", "AC-Coupling (one bit per channel)."), # CHECKME.
+                            ("``0b1``", "DC-Coupling (one bit per channel)."), # CHECKME.
+                        ]),
+                        CSRField("attenuation",  offset=16, size=4, description="Frontend Attenuation.", values=[
+                            ("``0b0``", "TBD."), # FIXME.
+                            ("``0b1``", "TBD."), # FIXME.
+                        ]),
+                    ])
+                    self._status = CSRStatus(fields=[
+                        CSRField("ldo_pwr_good", offset=0, size=1, description="Frontend LDO-Power-Good Feedback.", values=[
+                            ("``0b0``", "LDO not powered."),
+                            ("``0b1``", "LDO power good."),
+                        ]),
+                    ])
 
-            # Programmable Gain Amplifier (LMH6518/SPI).
-            fe_pga_pads = self.platform.request("fe_pga")
-            fe_pga_pads.miso = Signal()
-            self.submodules.spi = SPIMaster(
-                pads         = fe_pga_pads,
-                data_width   = 24,
-                sys_clk_freq = self.sys_clk_freq,
-                spi_clk_freq = 1e6
+                    # # #
+
+                    # Power.
+                    self.comb += control_pads.ldo_en.eq(self._control.fields.ldo_en)
+                    self.comb += self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
+
+                    # Coupling.
+                    self.comb += control_pads.coupling.eq(self._control.fields.coupling)
+
+                    # Attenuation.
+                    self.comb += control_pads.attenuation.eq(self._control.fields.attenuation)
+
+                    # Programmable Gain Amplifier (LMH6518/SPI).
+                    pga_spi_pads.miso = Signal()
+                    self.submodules.spi = SPIMaster(
+                        pads         = pga_spi_pads,
+                        data_width   = 24,
+                        sys_clk_freq = sys_clk_freq,
+                        spi_clk_freq = pga_spi_clk_freq
+                    )
+
+            self.submodules.frontend = Frontend(
+                control_pads     = platform.request("fe_control"),
+                status_pads      = platform.request("fe_status"),
+                pga_spi_pads     = platform.request("fe_pga_spi"),
+                sys_clk_freq     = sys_clk_freq,
+                pga_spi_clk_freq = 1e6,
             )
 
         # ADC.
         if with_adc:
 
-            # Frontend.
-            # TODO.
+            class ADC(Module, AutoCSR):
+                def __init__(self, control_pads, status_pads, spi_pads, data_pads, sys_clk_freq,
+                    data_width   = 128,
+                    spi_clk_freq = 1e6
+                ):
 
-            # SPI.
-            # TODO.
+                    # Control/Status.
+                    self._control = CSRStorage(fields=[
+                        CSRField("ldo_en", offset=0, size=1, description="ADC LDO-Enable.", values=[
+                            ("``0b0``", "LDO disabled."),
+                            ("``0b1``", "LDO enabled."),
+                        ]),
+                        CSRField("pll_en", offset=1, size=1, description="ADC-PLL Output-Enable.", values=[
+                            ("``0b0``", "PLL output disabled."),
+                            ("``0b1``", "PLL output enabled."),
+                        ]),
+                        CSRField("rst", offset=2, size=1, description="ADC Reset.", values=[
+                            ("``0b0``", "ADC in operational mode."),
+                            ("``0b1``", "ADC in reset mode."),
+                        ]),
+                        CSRField("pwr_down", offset=3, size=1, description="ADC Power-Down.", values=[
+                            ("``0b0``", "ADC in operational mode."),
+                            ("``0b1``", "ADC in power-down mode."),
+                        ]),
+                    ])
+                    self._status = CSRStatus(fields=[
+                        CSRField("ldo_pwr_good", offset=0, size=1, description="ADC LDO-Power-Good Feedback.", values=[
+                            ("``0b0``", "LDO not powered."),
+                            ("``0b1``", "LDO power good."),
+                        ]),
+                    ])
 
-            # Trigger.
-            self.submodules.trigger = Trigger()
+                    # Data Source.
+                    self.source = stream.Endpoint([("data", data_width)])
 
-            # ADC.
-            self.submodules.adc = HAD1511ADC(self.platform.request("adc_data"), sys_clk_freq, polarity=1)
-            self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
-            self.submodules.conv = stream.Converter(64, self.pcie_phy.data_width)
-            self.comb += self.gate.enable.eq(self.trigger.enable)
+                    # # #
 
-            # Datapath ---------------------------------------------------------------------------------
-            self.submodules += stream.Pipeline(
-                self.adc,
-                self.gate,
-                self.conv,
-                self.pcie_dma0.sink,
+                    # Control-Path -----------------------------------------------------------------
+
+                    # Control.
+                    self.comb += [
+                        control_pads.ldo_en.eq(self._control.fields.ldo_en),
+                        control_pads.pll_en.eq(self._control.fields.pll_en),
+                        control_pads.rst_n.eq(~self._control.fields.rst),
+                        control_pads.pd.eq(self._control.fields.pwr_down),
+                    ]
+
+                    # Status.
+                    self.comb += [
+                        self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
+                    ]
+
+                    # SPI.
+                    spi_pads.miso = Signal()
+                    self.submodules.spi = SPIMaster(
+                        pads         = spi_pads,
+                        data_width   = 24,
+                        sys_clk_freq = sys_clk_freq,
+                        spi_clk_freq = spi_clk_freq
+                    )
+
+                    # Data-Path --------------------------------------------------------------------
+
+                    # Trigger.
+                    self.submodules.trigger = Trigger()
+
+                    # HAD1511.
+                    self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, polarity=1)
+
+                    # Gate/Data-Width Converter.
+                    self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
+                    self.submodules.conv = stream.Converter(64, data_width)
+                    self.comb += self.gate.enable.eq(self.trigger.enable)
+
+                    # Pipeline.
+                    self.submodules += stream.Pipeline(
+                        self.had1511,
+                        self.gate,
+                        self.conv,
+                        self.source
+                    )
+
+            self.submodules.adc = ADC(
+                control_pads = platform.request("adc_control"),
+                status_pads  = platform.request("adc_status"),
+                spi_pads     = platform.request("adc_spi"),
+                data_pads    = platform.request("adc_data"),
+                sys_clk_freq = sys_clk_freq,
+                spi_clk_freq = 1e6,
             )
 
 # Build --------------------------------------------------------------------------------------------
