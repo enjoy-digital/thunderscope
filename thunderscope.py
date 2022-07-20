@@ -267,8 +267,8 @@ class BaseSoC(SoCMini):
                             ("``0b1``", "DC-Coupling (one bit per channel)."),
                         ]),
                         CSRField("attenuation",  offset=16, size=4, description="Frontend Attenuation.", values=[
-                            ("``0b0``", "TBD."), # FIXME.
-                            ("``0b1``", "TBD."), # FIXME.
+                            ("``0b0``", " 1X-Attenuation (one bit per channel)."),
+                            ("``0b1``", "10X-Attenuation (one bit per channel)."),
                         ]),
                     ])
                     self._status = CSRStatus(fields=[
