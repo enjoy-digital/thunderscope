@@ -26,6 +26,7 @@ from litex.soc.cores.dna  import DNA
 from litex.soc.cores.bitbang import I2CMaster
 from litex.soc.cores.gpio import GPIOOut
 from litex.soc.cores.spi import SPIMaster
+from litex.soc.cores.pwm import PWM
 
 from litepcie.phy.s7pciephy import S7PCIEPHY
 from litepcie.software import generate_litepcie_software
@@ -55,11 +56,11 @@ _io = [
         Subsignal("tx_n",  Pins("C7 A6 C5 A4")),
     ),
 
-    # Misc / TBD.
-    ("probe_comp", 0, Pins("N1"), IOStandard("LVCMOS33")),
-
     # Frontend.
     # ---------
+
+    # Probe Compensation.
+    ("fe_probe_compensation", 0, Pins("J22"), IOStandard("LVCMOS33")),
 
     # Control / Status.
     ("fe_control", 0,
@@ -250,6 +251,14 @@ class BaseSoC(SoCMini):
         # - Trim DAC (MCP4728 @ 0x61).
         # - PLL      (LMK61E2 @ 0x58).
         self.submodules.i2c = I2CMaster(platform.request("i2c"))
+
+        # Probe Compensation.
+        self.submodules.probe_compensation = PWM(
+            pwm = platform.request("fe_probe_compensation"),
+            default_enable = 1,
+            default_width  = int(1e-3*sys_clk_freq/2),
+            default_period = int(1e-3*sys_clk_freq)
+        )
 
         # Frontend.
         if with_frontend:
