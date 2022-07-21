@@ -170,67 +170,6 @@ def mcp4728_test(host, port):
 
     bus.close()
 
-# LMK61E2 Test -------------------------------------------------------------------------------------
-
-def lmk61e2_test(host, port):
-    bus = RemoteClient(host=host, port=port)
-    bus.open()
-
-    class LMK61E2:
-        # From configuration tool (Reg : Value).
-        conf = {
-            0x00 : 0x10,
-            0x01 : 0x0b,
-            0x02 : 0x33,
-            0x08 : 0xb0,
-            0x09 : 0x01,
-            0x10 : 0x00,
-            0x11 : 0x80,
-            0x15 : 0x01,
-            0x16 : 0x00,
-            0x17 : 0x05,
-            0x19 : 0x00,
-            0x1a : 0x32,
-            0x1b : 0x00,
-            0x1c : 0x00,
-            0x1d : 0x00,
-            0x1e : 0x00,
-            0x1f : 0x00,
-            0x20 : 0x01,
-            0x21 : 0x0c,
-            0x22 : 0x28,
-            0x23 : 0x03,
-            0x24 : 0x08,
-            0x25 : 0x00,
-            0x26 : 0x00,
-            0x27 : 0x00,
-            0x2f : 0x00,
-            0x30 : 0x00,
-            0x31 : 0x10,
-            0x32 : 0x00,
-            0x33 : 0x00,
-            0x34 : 0x00,
-            0x35 : 0x00,
-            0x38 : 0x00,
-            0x48 : 0x02,
-        }
-        def __init__(self, addr):
-            self.addr = addr
-            self.i2c  = BitBangI2C(bus.regs)
-
-        def init(self):
-            for reg, value in self.conf.items():
-                self.i2c.start_cond()
-                self.i2c.write(I2C_W_ADDR(self.addr))
-                self.i2c.write(reg)
-                self.i2c.write(value)
-                self.i2c.stop_cond()
-
-    lmk61e2 = LMK61E2(addr=LMK61E2_I2C_ADDR)
-    lmk61e2.init()
-
-    bus.close()
-
 # Run ----------------------------------------------------------------------------------------------
 
 def main():
@@ -240,7 +179,6 @@ def main():
 
     parser.add_argument("--scan",         action="store_true", help="Scan I2C Bus.")
     parser.add_argument("--mcp4728-test", action="store_true", help="Test MCP4728 I2C Access/Config.")
-    parser.add_argument("--lmk61e2-test", action="store_true", help="Test LMK61E2 I2C Access/Config.")
     args = parser.parse_args()
 
     host = args.host
@@ -251,9 +189,6 @@ def main():
 
     if args.mcp4728_test:
         mcp4728_test(host=host, port=port)
-
-    if args.lmk61e2_test:
-        lmk61e2_test(host=host, port=port)
 
 if __name__ == "__main__":
     main()

@@ -311,10 +311,10 @@ class HAD1511ADCDriver:
         self.n       = n
         self.mode    = mode
 
-        self.control      = getattr(bus.regs, f"adc{n}_control")
-        self.downsampling = getattr(bus.regs, f"adc{n}_downsampling")
-        self.range        = getattr(bus.regs, f"adc{n}_range")
-        self.count        = getattr(bus.regs, f"adc{n}_count")
+        self.control      = getattr(bus.regs, f"adc_had1511_control")
+        self.downsampling = getattr(bus.regs, f"adc_had1511_downsampling")
+        self.range        = getattr(bus.regs, f"adc_had1511_range")
+        self.count        = getattr(bus.regs, f"adc_had1511_count")
 
     def reset(self):
         # Reset ADC.
@@ -328,7 +328,7 @@ class HAD1511ADCDriver:
         self.control.write(HAD1511_CORE_CONTROL_FRAME_RST)
 
     def set_reg(self, reg, value):
-        self.spi.write(SPI_CS_ADC0 + self.n, [reg, (value >> 8) & 0xff, value & 0xff])
+        self.spi.write(0, [reg, (value >> 8) & 0xff, value & 0xff])
 
     def set_gain(self, gain):
         if self.mode == "single":

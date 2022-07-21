@@ -410,6 +410,8 @@ class BaseSoC(SoCMini):
                 spi_clk_freq = 1e6,
             )
 
+            self.comb += self.adc.source.ready.eq(1)
+
 # Build --------------------------------------------------------------------------------------------
 
 def main():
