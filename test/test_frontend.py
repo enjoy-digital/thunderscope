@@ -155,7 +155,7 @@ class LMH6518Driver:
         # Prepare SPI Data.
         cmd_field = 0
         dat_field = 0
-        dat_field |= (           0 << 10) # Aux Hi-Z.
+        dat_field |= (           1 << 10) # Aux Hi-Z.
         dat_field |= (bw_field     <<  6) # Filter.
         dat_field |= (preamp_field <<  4) # Preamp.
         dat_field |= (atten_field  <<  0) # Attenuation.

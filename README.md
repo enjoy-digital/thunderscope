@@ -58,6 +58,7 @@ $ ./i2c_test --host=192.168.1.44 --scan
 $ ./i2c_test --host=192.168.1.44 --mcp4728-test
 $ ./test_frontend.py --channel=0 --coupling=DC --attenuation=1X
 $ ./test_frontend.py --channel=1 --coupling=AC --attenuation=10X
+$ ./test_frontend.py --channel=3 --coupling=AC --attenuation=1X --pga-preamp=10 --pga-atten=10
 ```
 
 [> Use Pi-Pico/Si5351 as Clk Generator

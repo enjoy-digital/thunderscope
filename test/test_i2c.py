@@ -106,7 +106,7 @@ class BitBangI2C:
 
 # I2C Scan -----------------------------------------------------------------------------------------
 
-def i2c_scan_test(host, port):
+def i2c_scan(host, port):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
