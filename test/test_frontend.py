@@ -32,11 +32,6 @@ SPI_CONTROL_START  = (1 << 0)
 SPI_CONTROL_LENGTH = (1 << 8)
 SPI_STATUS_DONE    = (1 << 0)
 
-SPI_CS_PGA0 = 0
-SPI_CS_PGA1 = 0
-SPI_CS_PGA2 = 0
-SPI_CS_PGA3 = 0
-
 class FrontendSPIDriver:
     def __init__(self, bus):
         self.bus = bus
@@ -122,6 +117,64 @@ def frontend_configure(host, port, channel, coupling, attenuation):
 
     bus.close()
 
+# PGA Configure ------------------------------------------------------------------------------------
+
+class LMH6518Driver:
+    def __init__(self, bus):
+        self.spi = FrontendSPIDriver(bus)
+
+    def set(self, channel, preamp_db=10, atten_db=10, bw_mhz=900):
+        # Compute Configuration Fields.
+        preamp_field =  {
+            10 : 0b0,
+            30 : 0b1,
+        }[preamp_db]
+        atten_field = {
+            0  : 0b0000,
+            2  : 0b0001,
+            4  : 0b0010,
+            6  : 0b0011,
+            8  : 0b0100,
+            10 : 0b0101,
+            12 : 0b0110,
+            14 : 0b0111,
+            16 : 0b1000,
+            18 : 0b1001,
+            20 : 0b1010,
+        }[atten_db]
+        bw_field = {
+             900 : 0b000,
+              20 : 0b001,
+             100 : 0b010,
+             200 : 0b011,
+             350 : 0b100,
+             650 : 0b100,
+             750 : 0b110,
+        }[bw_mhz]
+
+        # Prepare SPI Data.
+        cmd_field = 0
+        dat_field = 0
+        dat_field |= (           0 << 10) # Aux Hi-Z.
+        dat_field |= (bw_field     <<  6) # Filter.
+        dat_field |= (preamp_field <<  4) # Preamp.
+        dat_field |= (atten_field  <<  0) # Attenuation.
+        spi_data  = []
+        spi_data.append(cmd_field)
+        spi_data.append((dat_field >> 8) & 0xff)
+        spi_data.append((dat_field >> 0) & 0xff)
+        self.spi.write(cs=channel, data=spi_data)
+
+def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz):
+    bus = RemoteClient(host=host, port=port)
+    bus.open()
+
+    # Programmable Gain Amplifier.
+    pga = LMH6518Driver(bus)
+    pga.set(channel, preamp_db, atten_db, bw_mhz)
+
+    bus.close()
+
 # Run ----------------------------------------------------------------------------------------------
 
 def main():
@@ -132,8 +185,13 @@ def main():
     parser.add_argument("--ldo-test", action="store_true", help="Test LDO.")
 
     parser.add_argument("--channel",     default="0",  help="Select Channel.")
-    parser.add_argument("--coupling",    default="AC", help="Select Coupling: AC (default) or DC.")
-    parser.add_argument("--attenuation", default="1X", help="Select Attenuation: 1X (default) or 10X.")
+    parser.add_argument("--coupling",    default="AC", help="Set Frontend Coupling: AC (default) or DC.")
+    parser.add_argument("--attenuation", default="1X", help="Set Frontend Attenuation: 1X (default) or 10X.")
+
+    parser.add_argument("--pga-preamp",  default="10",   help="Set PGA Preamp Gain (dB), 10 or 30.")
+    parser.add_argument("--pga-atten",   default="10",   help="Set PGA Attenuation (dB), 0 to 20 (with 2 increment).")
+    parser.add_argument("--pga-bw",      default="full", help="Set PGA Bandwidth (MHz), 20, 100, 200, full.")
+
     args = parser.parse_args()
 
     host = args.host
@@ -148,6 +206,19 @@ def main():
         channel     = channel,
         coupling    = args.coupling,
         attenuation = args.attenuation,
+    )
+
+    preamp_db = int(args.pga_preamp, 0)
+    atten_db  = int(args.pga_atten,  0)
+    if args.pga_bw == "full":
+        bw_mhz = 900
+    else:
+        bw_mhz = int(args.pga_bw, 0)
+    pga_configure(host=host, port=port,
+        channel   = channel,
+        preamp_db = preamp_db,
+        atten_db  = atten_db,
+        bw_mhz    = bw_mhz,
     )
 
 if __name__ == "__main__":
