@@ -79,6 +79,15 @@ def frontend_configure(host, port, channel, coupling, attenuation):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
+    # LDO.
+    def configure_ldo(enable):
+        control_value  = bus.regs.frontend_control.read()
+        control_value &= ~(     1 * FRONTEND_CONTROL_LDO_EN)
+        control_value |=  (enable * FRONTEND_CONTROL_LDO_EN)
+        bus.regs.frontend_control.write(control_value)
+
+    configure_ldo(1)
+
     # Coupling.
     def configure_coupling(channel, coupling):
         value = {
@@ -86,8 +95,8 @@ def frontend_configure(host, port, channel, coupling, attenuation):
             "DC" : FRONTEND_DC_COUPLING,
         }[coupling.upper()]
         control_value  = bus.regs.frontend_control.read()
-        control_value &= ~((    1 << channel) << FRONTEND_CONTROL_COUPLING)
-        control_value |=  ((value << channel) << FRONTEND_CONTROL_COUPLING)
+        control_value &= ~((    1 << channel) * FRONTEND_CONTROL_COUPLING)
+        control_value |=  ((value << channel) * FRONTEND_CONTROL_COUPLING)
         bus.regs.frontend_control.write(control_value)
 
     configure_coupling(channel, coupling)
@@ -98,18 +107,20 @@ def frontend_configure(host, port, channel, coupling, attenuation):
             "1X"  :  FRONTEND_1X_ATTENUATION,
             "10X" : FRONTEND_10X_ATTENUATION,
         }[attenuation.upper()]
+        print(value)
         control_value  = bus.regs.frontend_control.read()
-        control_value &= ~((    1 << channel) << FRONTEND_CONTROL_ATTENUATION)
-        control_value |=  ((value << channel) << FRONTEND_CONTROL_ATTENUATION)
+        print(f"0b{control_value:032b}")
+        control_value &= ~((    1 << channel) * FRONTEND_CONTROL_ATTENUATION)
+        print(f"0b{control_value:032b}")
+        control_value |=  ((value << channel) * FRONTEND_CONTROL_ATTENUATION)
+        print(f"0b{control_value:032b}")
         bus.regs.frontend_control.write(control_value)
 
     configure_attenuation(channel, attenuation)
 
-    bus.regs.frontend_control.write(0x1)
     print(f"0b{bus.regs.frontend_control.read():032b}")
 
     bus.close()
-
 
 # Run ----------------------------------------------------------------------------------------------
 

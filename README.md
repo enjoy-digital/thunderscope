@@ -56,6 +56,8 @@ $ sudo litex_server --pcie --pcie-bar=03:00.0 --bind-ip=192.168.1.44
 $ cd test
 $ ./i2c_test --host=192.168.1.44 --scan
 $ ./i2c_test --host=192.168.1.44 --mcp4728-test
+$ ./test_frontend.py --channel=0 --coupling=DC --attenuation=1X
+$ ./test_frontend.py --channel=1 --coupling=AC --attenuation=10X
 ```
 
 [> Use Pi-Pico/Si5351 as Clk Generator
