@@ -390,7 +390,6 @@ class BaseSoC(SoCMini):
 
                     # HAD1511.
                     self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, lanes_polarity=[1, 1, 0, 1, 1, 1, 1, 1])
-                    self.comb += self.had1511.source.ready.eq(1)
 
                     # Debug: Output ADC Frame Clk on Probe Compensation to monitor PLL config -> PLL Clk = 2 * 4 * 2 = 16X generated ClK.
                     probe_comp = platform.request("fe_probe_compensation")
@@ -400,23 +399,19 @@ class BaseSoC(SoCMini):
                         )
                     ]
 
-                    #from litex.build.io import DDROutput
-                    #self.specials += DDROutput(1, 0, platform.request("fe_probe_compensation"), ClockSignal("adc_frame"))
-                    #self.specials += DDROutput(iplatform.request("fe_probe_compensation").eq(self.had1511.cd_adc_frame.clk)
+                    # Gate/Data-Width Converter.
+                    self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
+                    self.submodules.conv = stream.Converter(64, data_width)
+                    self.comb += self.gate.enable.eq(self.trigger.enable)
 
-#                    # Gate/Data-Width Converter.
-#                    self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
-#                    self.submodules.conv = stream.Converter(64, data_width)
-#                    self.comb += self.gate.enable.eq(self.trigger.enable)
-#
-#                    # Pipeline.
-#                    self.submodules += stream.Pipeline(
-#                        self.had1511,
-#                        self.gate,
-#                        self.conv,
-#                        self.source
-#                    )
-#
+                    # Pipeline.
+                    self.submodules += stream.Pipeline(
+                        self.had1511,
+                        self.gate,
+                        self.conv,
+                        self.source
+                    )
+
             self.submodules.adc = ADC(
                 control_pads = platform.request("adc_control"),
                 status_pads  = platform.request("adc_status"),
