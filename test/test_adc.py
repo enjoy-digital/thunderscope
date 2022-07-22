@@ -130,7 +130,7 @@ def adc_configure(host, port):
                 self.i2c.stop_cond()
 
     lmk61e2 = LMK61E2(addr=LMK61E2_I2C_ADDR)
-    #lmk61e2.init()
+    lmk61e2.init()
 
     # RST.
     def configure_rst(enable):
@@ -167,6 +167,12 @@ def adc_configure(host, port):
     adc.enable_ramp_pattern()
     for i in range(8):
         print(adc.get_samplerate(duration=0.5))
+
+
+    from peripherals.trigger import TriggerDriver
+    trigger = TriggerDriver(bus)
+    trigger.reset()
+    trigger.enable()
 
     bus.close()
 

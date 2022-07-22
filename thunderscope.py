@@ -412,6 +412,16 @@ class BaseSoC(SoCMini):
 
             self.comb += self.adc.source.ready.eq(1)
 
+            # Analyzer.
+            from litescope import LiteScopeAnalyzer
+            analyzer_signals = [self.adc.source]
+            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals,
+                depth        = 1024,
+                clock_domain = "sys",
+                samplerate   = sys_clk_freq,
+                csr_csv      = "test/analyzer.csv"
+            )
+
 # Build --------------------------------------------------------------------------------------------
 
 def main():

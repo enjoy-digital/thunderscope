@@ -46,7 +46,7 @@ class TriggerDriver:
         self.bus = bus
 
     def reset(self):
-        self.bus.regs.trigger_control.write(0)
+        self.bus.regs.adc_trigger_control.write(0)
 
     def enable(self):
-        self.bus.regs.trigger_control.write(TRIGGER_CONTROL_ENABLE)
+        self.bus.regs.adc_trigger_control.write(TRIGGER_CONTROL_ENABLE)
