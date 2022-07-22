@@ -450,18 +450,22 @@ def main():
     target_group.add_argument("--driver",    action="store_true", help="Generate PCIe driver.")
     args = parser.parse_args()
 
+    # Build SoC.
     soc = BaseSoC()
 
     builder  = Builder(soc, csr_csv="test/csr.csv")
     builder.build(run=args.build)
 
+    # Generate LitePCIe Driver.
     if args.driver:
-        generate_litepcie_software(soc, os.path.join(builder.output_dir, "driver"))
+        generate_litepcie_software(soc, "software")
 
+    # Load Bistream.
     if args.load:
         prog = soc.platform.create_programmer()
         prog.load_bitstream(builder.get_bitstream_filename(mode="sram"))
 
+    # Flash Bitstream.
     if args.flash:
         prog = soc.platform.create_programmer("vivado")
         prog.flash(0, builder.get_bitstream_filename(mode="flash"))

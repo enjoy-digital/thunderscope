@@ -19,7 +19,7 @@ import threading
 # SCPI Server --------------------------------------------------------------------------------------
 
 class SCPIServer:
-    def __init__(self, bind_ip="localhost", channels=2, sample_rate=30.72e6, sample_depth=16384,
+    def __init__(self, bind_ip="localhost", channels=2, sample_rate=1e9, sample_depth=16384,
         control_port  = 5025,
         control_only  = False,
         waveform_port = 50101):
@@ -90,20 +90,17 @@ class SCPIServer:
                         n += 1
                     else:
                         # FIXME: Proof of concept; do it differently and move sample processing/remapping to GLScopeClient?
-                        os.system(f"../software/user/litepcie_test record waveform.bin {int(self.sample_depth*4):d}")
+                        os.system(f"../software/user/litepcie_test record waveform.bin {int(self.sample_depth*8):d}")
                         with open("waveform.bin", "rb") as f:
                             data = list(f.read())
                             #print(f"{data[0]:02x} {data[1]:02x} {data[2]:02x} {data[3]:02x}")
                             samples = []
                             for n in range(self.sample_depth):
-                                assert self.channels in [1, 2]
+                                assert self.channels in [1]
                                 for c in range(self.channels):
-                                    # 12-bit to 8-bit.
+                                    # 8:1 decimation (ramp).
                                     if self.channels == 1:
-                                        sample = (data[4*n + 1] << 8) + data[4*n + 0]
-                                    if self.channels == 2:
-                                        sample = (data[2*n + 2*c + 1] << 8) + data[2*n + 2*c + 0]
-                                    sample = sample >> 4
+                                        sample = data[8*n]
                                     sample = sample & 0xff
                                     # 2's complement to decimal.
                                     if sample & 0x80:
