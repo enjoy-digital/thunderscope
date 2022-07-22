@@ -31,6 +31,8 @@ from litex.soc.cores.pwm import PWM
 from litepcie.phy.s7pciephy import S7PCIEPHY
 from litepcie.software import generate_litepcie_software
 
+from litescope import LiteScopeAnalyzer
+
 from peripherals.had1511_adc import HAD1511ADC
 from peripherals.trigger import Trigger
 
@@ -197,7 +199,7 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCMini):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=True, with_jtagbone=True):
+    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=True, with_jtagbone=True, with_analyzer=False):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -424,19 +426,20 @@ class BaseSoC(SoCMini):
             # ADC -> PCIe.
             self.comb += self.adc.source.connect(self.pcie_dma0.sink)
 
-            # Analyzer.
-            from litescope import LiteScopeAnalyzer
-            analyzer_signals = [
-                self.adc.source,
-                self.adc.had1511.bitslip,
-                self.adc.had1511.fclk,
-            ]
-            self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals,
-                depth        = 1024,
-                clock_domain = "sys",
-                samplerate   = sys_clk_freq,
-                csr_csv      = "test/analyzer.csv"
-            )
+            # Analyzer -----------------------------------------------------------------------------
+
+            if with_analyzer:
+                analyzer_signals = [
+                    self.adc.source,
+                    self.adc.had1511.bitslip,
+                    self.adc.had1511.fclk,
+                ]
+                self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals,
+                    depth        = 1024,
+                    clock_domain = "sys",
+                    samplerate   = sys_clk_freq,
+                    csr_csv      = "test/analyzer.csv"
+                )
 
 # Build --------------------------------------------------------------------------------------------
 
