@@ -117,12 +117,12 @@ class HAD1511ADC(Module, AutoCSR):
         # ---------------------------------
 
         if pads is not None:
-            self.bitslip = bitslip = Signal()
-            self.fclk    = fclk    = Signal(8)
+            self.bitslip       = bitslip       = Signal()
+            self.fclk          = fclk          = Signal(8)
+            self.fclk_no_delay = fclk_no_delay = Signal()
+            self.fclk_delayed  = fclk_delayed  = Signal()
 
             # Receive & Deserialize Frame clock to use it as a delimiter for the data.
-            fclk_no_delay = Signal()
-            fclk_delayed  = Signal()
             self.specials += [
                 Instance("IBUFDS",
                     i_I  = pads.fclk_p,

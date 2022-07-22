@@ -127,12 +127,17 @@ def adc_configure(host, port):
         def init(self):
             print("Configure PLL I2C...")
             for reg, value in self.conf.items():
-                print(reg)
-                self.i2c.start_cond()
-                self.i2c.write(I2C_W_ADDR(self.addr))
-                self.i2c.write(reg)
-                self.i2c.write(value)
-                self.i2c.stop_cond()
+                print(f"0x{reg:02x}", end="")
+                ack = 0
+                while (not ack):
+                    print(".", end="")
+                    sys.stdout.flush()
+                    self.i2c.start_cond()
+                    ack =  self.i2c.write(I2C_W_ADDR(self.addr))
+                    ack &= self.i2c.write(reg)
+                    ack &= self.i2c.write(value)
+                    self.i2c.stop_cond()
+                print("")
 
     lmk61e2 = LMK61E2(addr=LMK61E2_I2C_ADDR)
     lmk61e2.init()
@@ -181,6 +186,8 @@ def adc_configure(host, port):
         bitslip_diff  = (bitslip_count - bitslip_count_last) # FIXME: Handle rollover.
         bitslip_count_last = bitslip_count
         print(f"Delay {d} / BitSlip Errors: {bitslip_diff}")
+
+    bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_RST)
 
     trigger = TriggerDriver(bus)
     trigger.reset()
