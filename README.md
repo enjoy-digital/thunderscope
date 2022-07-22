@@ -60,11 +60,3 @@ $ ./test_frontend.py --channel=0 --coupling=DC --attenuation=1X
 $ ./test_frontend.py --channel=1 --coupling=AC --attenuation=10X
 $ ./test_frontend.py --channel=3 --coupling=AC --attenuation=1X --pga-preamp=10 --pga-atten=10
 ```
-
-[> Use Pi-Pico/Si5351 as Clk Generator
---------------------------------------
-```sh
-$ cd test/pico_clkgen
-$ sudo ./pyboard.py -f cp si5351.py :
-$ sudo ./pyboard.py test_si5351.py
-```
