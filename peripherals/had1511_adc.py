@@ -84,7 +84,8 @@ class HAD1511ADC(Module, AutoCSR):
             CSRField("min23", size=8, offset=16, description="ADC2/3 Min value since last stat_rst."),
             CSRField("max23", size=8, offset=24, description="ADC2/3 Max value since last stat_rst."),
         ])
-        self._count        = CSRStatus(32, description="ADC samples count since last stat_rst.")
+        self._bitslip_count = CSRStatus(32, description="ADC bitslip count (with rollover).")
+        self._sample_count  = CSRStatus(32, description="ADC samples count since last stat_rst.")
 
         # # #
 
@@ -116,12 +117,12 @@ class HAD1511ADC(Module, AutoCSR):
         # ---------------------------------
 
         if pads is not None:
-            bitslip = Signal()
+            self.bitslip = bitslip = Signal()
+            self.fclk    = fclk    = Signal(8)
 
             # Receive & Deserialize Frame clock to use it as a delimiter for the data.
             fclk_no_delay = Signal()
             fclk_delayed  = Signal()
-            fclk          = Signal(8)
             self.specials += [
                 Instance("IBUFDS",
                     i_I  = pads.fclk_p,
@@ -284,18 +285,22 @@ class HAD1511ADC(Module, AutoCSR):
                 ),
             ]
 
+        # BitSlips Count.
+        bitslip_count = self._bitslip_count.status
+        self.sync.adc_frame += bitslip_count.eq(bitslip_count + self.bitslip)
+
         # Samples Count.
-        adc_count = self._count.status
+        sample_count = self._sample_count.status
         self.sync += [
             # On a valid cycle:
             If(source.valid,
-                If(adc_count != (2**32-nchannels),
-                    adc_count.eq(adc_count + nchannels)
+                If(sample_count != (2**32-nchannels),
+                    sample_count.eq(sample_count + nchannels)
                 )
             ),
             # Clear Count.
             If(self._control.fields.stat_rst,
-                adc_count.eq(0),
+                sample_count.eq(0),
             ),
         ]
 
@@ -311,10 +316,11 @@ class HAD1511ADCDriver:
         self.n       = n
         self.mode    = mode
 
-        self.control      = getattr(bus.regs, f"adc_had1511_control")
-        self.downsampling = getattr(bus.regs, f"adc_had1511_downsampling")
-        self.range        = getattr(bus.regs, f"adc_had1511_range")
-        self.count        = getattr(bus.regs, f"adc_had1511_count")
+        self.control       = getattr(bus.regs, f"adc_had1511_control")
+        self.downsampling  = getattr(bus.regs, f"adc_had1511_downsampling")
+        self.range         = getattr(bus.regs, f"adc_had1511_range")
+        self.bitslip_count = getattr(bus.regs, f"adc_had1511_bitslip_count")
+        self.sample_count  = getattr(bus.regs, f"adc_had1511_sample_count")
 
     def reset(self):
         # Reset ADC.
@@ -398,8 +404,8 @@ class HAD1511ADCDriver:
     def get_samplerate(self, duration=0.5):
         self.control.write(HAD1511_CORE_CONTROL_STAT_RST)
         time.sleep(duration)
-        adc_count = self.count.read()
-        return adc_count/duration
+        sample_count = self.sample_count.read()
+        return sample_count/duration
 
 class HAD1511DMADriver:
     def __init__(self, bus, n):

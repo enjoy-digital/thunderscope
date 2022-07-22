@@ -12,6 +12,11 @@ import argparse
 
 from litex import RemoteClient
 
+import sys
+sys.path.append("..")
+from peripherals.had1511_adc import *
+from peripherals.trigger import *
+
 from test_i2c import *
 
 # ADC Constants ------------------------------------------------------------------------------------
@@ -155,9 +160,6 @@ def adc_configure(host, port):
 
     # HAD1511.
     print("Configure HAD1511...")
-    import sys
-    sys.path.append("..")
-    from peripherals.had1511_adc import HAD1511ADCDriver
 
     n = 0
     spi = ADCSPIDriver(bus)
@@ -165,11 +167,21 @@ def adc_configure(host, port):
     adc.reset()
     adc.data_mode(n={1: [n], 2: [0, 1], 4: [0, 1]}[4])
     adc.enable_ramp_pattern()
+    #adc.enable_sync_pattern()
     for i in range(8):
         print(adc.get_samplerate(duration=0.5))
 
+    # Delay calibration.
+    bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_RST)
+    bitslip_count_last = bus.regs.adc_had1511_bitslip_count.read()
+    for d in range(32):
+        bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_INC)
+        time.sleep(0.2)
+        bitslip_count = bus.regs.adc_had1511_bitslip_count.read()
+        bitslip_diff  = (bitslip_count - bitslip_count_last) # FIXME: Handle rollover.
+        bitslip_count_last = bitslip_count
+        print(f"Delay {d} / BitSlip Errors: {bitslip_diff}")
 
-    from peripherals.trigger import TriggerDriver
     trigger = TriggerDriver(bus)
     trigger.reset()
     trigger.enable()

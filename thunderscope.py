@@ -154,6 +154,7 @@ class Platform(XilinxPlatform):
 
     def do_finalize(self, fragment):
         XilinxPlatform.do_finalize(self, fragment)
+        self.add_period_constraint(self.lookup_request("adc_data:lclk_p", loose=True), 1e9/500e6)
 
 # CRG ----------------------------------------------------------------------------------------------
 
@@ -178,6 +179,7 @@ class CRG(Module):
             i_USRDONETS = 1,
             o_CFGMCLK   = cfgm_clk
         )
+        platform.add_period_constraint(cfgm_clk, 1e9/65e6)
 
         # PLL.
         self.submodules.pll = pll = S7PLL(speedgrade=-1)
@@ -186,6 +188,8 @@ class CRG(Module):
         pll.create_clkout(self.cd_sys, sys_clk_freq)
         pll.create_clkout(self.cd_idelay, 200e6)
         platform.add_false_path_constraints(self.cd_sys.clk, pll.clkin) # Ignore sys_clk to pll.clkin path created by SoC's rst.
+        platform.add_period_constraint(self.cd_sys.clk, 1e9/sys_clk_freq)
+        platform.add_period_constraint(self.cd_idelay.clk, 1e9/200e6)
 
         # IDELAYCTRL.
         self.submodules.idelayctrl = S7IDELAYCTRL(self.cd_idelay)
@@ -232,7 +236,6 @@ class BaseSoC(SoCMini):
             )
             self.add_pcie(phy=self.pcie_phy, ndmas=1, dma_buffering_depth=8192)
             # FIXME: Apply it to all targets (integrate it in LitePCIe?).
-            platform.add_period_constraint(self.crg.cd_sys.clk, 1e9/sys_clk_freq)
             platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks userclk2] -asynchronous", sys_clk=self.crg.cd_sys.clk)
             platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_125mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
             platform.toolchain.pre_placement_commands.add("set_clock_groups -group [get_clocks {sys_clk}] -group [get_clocks clk_250mhz] -asynchronous", sys_clk=self.crg.cd_sys.clk)
@@ -388,6 +391,7 @@ class BaseSoC(SoCMini):
                     # HAD1511.
                     self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, lanes_polarity=[1, 1, 0, 1, 1, 1, 1, 1])
 
+
                     # Gate/Data-Width Converter.
                     self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
                     self.submodules.conv = stream.Converter(64, data_width)
@@ -414,7 +418,11 @@ class BaseSoC(SoCMini):
 
             # Analyzer.
             from litescope import LiteScopeAnalyzer
-            analyzer_signals = [self.adc.source]
+            analyzer_signals = [
+                self.adc.source,
+                self.adc.had1511.bitslip,
+                self.adc.had1511.fclk,
+            ]
             self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals,
                 depth        = 1024,
                 clock_domain = "sys",
