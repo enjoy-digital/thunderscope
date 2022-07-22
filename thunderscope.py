@@ -421,7 +421,8 @@ class BaseSoC(SoCMini):
                 spi_clk_freq = 1e6,
             )
 
-            self.comb += self.adc.source.ready.eq(1)
+            # ADC -> PCIe.
+            self.comb += self.adc.source.connect(self.pcie_dma0.sink)
 
             # Analyzer.
             from litescope import LiteScopeAnalyzer
