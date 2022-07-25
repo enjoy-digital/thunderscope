@@ -45,9 +45,9 @@ Over JTAGBone (on local machine):
 ```sh
 $ litex_server --jtag --jtag-config=openocd_xc7_ft232.cfg
 ```
-Over PCIeBone (on remote machine):
+Over PCIeBone (on local or remote machine):
 ```sh
-$ sudo litex_server --pcie --pcie-bar=0x:00.0
+$ sudo litex_server --pcie --pcie-bar=0x:00.0 (--host=192.168.1.X if on remote machine)
 ```
 
 [> Compile/Mount LitePCIe Driver
@@ -64,8 +64,7 @@ $ make
 -------------------
 ```sh
 $ cd test
-$ ./i2c_test --host=192.168.1.44 --scan
-$ ./i2c_test --host=192.168.1.44 --mcp4728-test
+$ ./i2c_test --scan (--host=192.168.1.X if remotely)
 $ ./test_adc.py --channels=1 --mode=ramp --afe-coupling=DC --afe-attenuation=10X --pga-preamp=10 --pga-atten=10 --pga-bw=full --pga-offset=128
 $ ./test_glscopeclient.py
 $ glscopeclient --debug myscope:enjoy-digital:lan:127.0.0.1
