@@ -77,6 +77,8 @@ class SCPIServer:
         while True:
             client, addr = self.waveform_sock.accept()
             print(f"Waveform: Connected with {addr[0]}:{str(addr[1])}")
+            os.system(f"sudo mkdir -p /tmpfs")
+            os.system(f"sudo mount -t tmpfs -o size=1024m tmpfs /tmpfs")
             try:
                 n = 0
                 while True:
@@ -90,8 +92,8 @@ class SCPIServer:
                         n += 1
                     else:
                         # FIXME: Proof of concept; do it differently and move sample processing/remapping to GLScopeClient?
-                        os.system(f"../software/user/litepcie_test record waveform.bin {int(self.sample_depth*8):d}")
-                        with open("waveform.bin", "rb") as f:
+                        os.system(f"../software/user/litepcie_test record /tmpfs/waveform.bin {int(self.sample_depth*8):d}")
+                        with open("/tmpfs/waveform.bin", "rb") as f:
                             data = list(f.read())
                             #print(f"{data[0]:02x} {data[1]:02x} {data[2]:02x} {data[3]:02x}")
                             samples = []
@@ -115,8 +117,10 @@ class SCPIServer:
                             client.send(samples)
                         time.sleep(0.1)
             finally:
+                os.system(f"sudo umount /tmpfs")
                 print("Waveform: Disconnect")
                 client.close()
+                self.close()
 
     def start(self):
         self.control_thread = threading.Thread(target=self._control_thread)
