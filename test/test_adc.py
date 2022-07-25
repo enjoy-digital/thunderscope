@@ -134,7 +134,7 @@ def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz, offset):
 
 # ADC Configure ------------------------------------------------------------------------------------
 
-def adc_configure(host, port, channel, mode):
+def adc_configure(host, port, channel, mode, downsampling):
     assert mode in ["capture", "ramp"]
     bus = RemoteClient(host=host, port=port)
     bus.open()
@@ -192,6 +192,7 @@ def adc_configure(host, port, channel, mode):
     spi = SPIDriver(bus=bus, name="adc_spi")
     adc = HAD1511ADCDriver(bus, spi, n=0)
     adc.reset()
+    adc.downsampling.write(downsampling)
     adc.data_mode(n=channel)
     if mode == "ramp":
         adc.enable_ramp_pattern()
@@ -227,8 +228,9 @@ def main():
     parser.add_argument("--host",    default="localhost",   help="Host ip address")
     parser.add_argument("--port",    default="1234",        help="Host bind port.")
 
-    parser.add_argument("--channels", default="0",       help="ADC Channels: 0 (default), 1, 2, 3 or combinations (01, 23, 0123).")
-    parser.add_argument("--mode",     default="capture", help="ADC Mode: capture (default), ramp.")
+    parser.add_argument("--channels",     default="0",         help="ADC Channels: 0 (default), 1, 2, 3 or combinations (01, 23, 0123).")
+    parser.add_argument("--mode",         default="capture",   help="ADC Mode: capture (default), ramp.")
+    parser.add_argument("--downsampling", default=1, type=int, help="ADC DownSampling Ratio (default=1).")
 
     parser.add_argument("--afe-coupling",    default="AC", help="AFE Coupling: AC (default) or DC.")
     parser.add_argument("--afe-attenuation", default="1X", help="AFE Attenuation: 1X (default) or 10X.")
@@ -244,8 +246,9 @@ def main():
     host = args.host
     port = int(args.port, 0)
     assert len(args.channels) == 1 # FIXME: Allow multiple channels.
-    channel = int(args.channels, 0)
-    mode    = args.mode
+    channel      = int(args.channels, 0)
+    mode         = args.mode
+    downsampling = args.downsampling
 
     # Analog Frontend-Configuration.
     afe_configure(host=host, port=port,
@@ -271,7 +274,11 @@ def main():
     )
 
     # ADC Configuration
-    adc_configure(host=host, port=port, channel=channel, mode=mode)
+    adc_configure(host=host, port=port,
+        channel      = channel,
+        mode         = mode,
+        downsampling = downsampling,
+    )
 
 if __name__ == "__main__":
     main()
