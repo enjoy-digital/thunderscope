@@ -12,97 +12,13 @@ import argparse
 
 from litex import RemoteClient
 
+sys.path.append("..")
+from peripherals.i2c import *
+
 # I2C Constants ------------------------------------------------------------------------------------
-
-I2C_SCL    = 0x01
-I2C_SDAOE  = 0x02
-I2C_SDAOUT = 0x04
-I2C_SDAIN  = 0x01
-
-I2C_DELAY = 1
-I2C_WRITE = 0
-I2C_READ  = 1
-
-def I2C_W_ADDR(addr):
-    return (addr & 0x7f) << 1
-
-def I2C_R_ADDR(addr):
-    return ((addr & 0x7f) << 1) | 1
 
 MCP4728_I2C_ADDR = 0x61
 LMK61E2_I2C_ADDR = 0x58
-
-# BitBangI2C ---------------------------------------------------------------------------------------
-
-class BitBangI2C:
-    def __init__(self, regs):
-        self.regs = regs
-
-        self.started = 0
-
-        self.regs.i2c_w.write(I2C_SCL)
-        # Check that the I2C bus is ready.
-        while(not (self.regs.i2c_r.read() & I2C_SDAIN)):
-            time.sleep(1e-3)
-
-    # I2C bit-banging functions from http://en.wikipedia.org/wiki/I2c.
-    def read_bit(self):
-        # Let the Slave drive data.
-        self.regs.i2c_w.write(0)
-        self.regs.i2c_w.write(I2C_SCL)
-        bit = (self.regs.i2c_r.read() & I2C_SDAIN)
-        self.regs.i2c_w.write(0)
-        return bit
-
-    def write_bit(self, bit):
-        if bit:
-            self.regs.i2c_w.write(I2C_SDAOE| I2C_SDAOUT)
-        else:
-            self.regs.i2c_w.write(I2C_SDAOE)
-        # Clock stretching.
-        self.regs.i2c_w.write(self.regs.i2c_w.read() | I2C_SCL);
-        self.regs.i2c_w.write(self.regs.i2c_w.read() & ~I2C_SCL);
-
-    def start_cond(self):
-        if self.started:
-            # Set SDA to 1.
-            self.regs.i2c_w.write(I2C_SDAOE| I2C_SDAOUT);
-            self.regs.i2c_w.write(self.regs.i2c_w.read() | I2C_SCL);
-        # SCL is high, set SDA from 1 to 0.
-        self.regs.i2c_w.write(I2C_SDAOE| I2C_SCL)
-        self.regs.i2c_w.write(I2C_SDAOE)
-        self.started = 1
-
-    def stop_cond(self):
-        # Set SDA to 0.
-        self.regs.i2c_w.write(I2C_SDAOE)
-        # Clock stretching.
-        self.regs.i2c_w.write(I2C_SDAOE| I2C_SCL)
-        # SCL is high, set SDA from 0 to 1.
-        self.regs.i2c_w.write(I2C_SCL)
-        self.started = 0
-
-    def write(self, byte):
-        for bit in range(8):
-            self.write_bit(byte & 0x80)
-            byte <<= 1
-        ack = not self.read_bit()
-        return ack
-
-    def read(self, ack):
-        byte = 0
-        for bit in range(8):
-            byte <<= 1
-            byte |= self.read_bit()
-        self.write(not ack)
-        return byte
-
-    def poll(self, addr):
-        self.start_cond()
-        ack  = self.write(I2C_W_ADDR(addr))
-        ack |= self.write(I2C_R_ADDR(addr))
-        self.stop_cond()
-        return ack
 
 # I2C Scan -----------------------------------------------------------------------------------------
 
@@ -110,7 +26,7 @@ def i2c_scan(host, port):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
-    i2c = BitBangI2C(bus.regs)
+    i2c = I2CDriver(bus=bus, name="i2c")
 
     print("      0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f", end="");
     sys.stdout.flush()
@@ -135,7 +51,7 @@ def mcp4728_test(host, port):
     class MCP4728:
         def __init__(self, addr):
             self.addr = addr
-            self.i2c  = BitBangI2C(bus.regs)
+            self.i2c  = I2CDriver(bus=bus, name="i2c")
 
         def reset(self):
             # General Call Reset.

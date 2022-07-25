@@ -15,6 +15,7 @@ from litex import RemoteClient
 import sys
 sys.path.append("..")
 from peripherals.spi import *
+from peripherals.i2c import *
 from peripherals.trigger import *
 from peripherals.had1511_adc import *
 
@@ -96,7 +97,7 @@ def adc_configure(host, port):
         }
         def __init__(self, addr):
             self.addr = addr
-            self.i2c  = BitBangI2C(bus.regs)
+            self.i2c  = I2CDriver(bus=bus, name="i2c")
 
         def init(self):
             print("Configure PLL I2C...")
