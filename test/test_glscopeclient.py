@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #
-# This file is part of XTRX-Julia project.
+# This file is part of Thunderscope-LiteX project.
 #
 # Copyright (c) 2021-2022 Florent Kermarrec <florent@enjoy-digital.fr>
 # SPDX-License-Identifier: BSD-2-Clause
