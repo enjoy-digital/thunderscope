@@ -36,7 +36,7 @@ $ sudo ./litex_setup.py init install
 [> Build and Load the bitstream
 --------------------------------
 ```sh
-$ ./thunderscope --build --load
+$ ./thunderscope --driver --build --load
 ```
 
 [> Open LiteX server
@@ -50,6 +50,16 @@ Over PCIeBone (on remote machine):
 $ sudo litex_server --pcie --pcie-bar=0x:00.0
 ```
 
+[> Compile/Mount LitePCIe Driver
+--------------------------------
+```sh
+$ cd software/kernel
+$ make
+$ sudo ./init.sh
+$ cd ../user
+$ make
+```
+
 [> Run test scripts
 -------------------
 ```sh
@@ -57,4 +67,6 @@ $ cd test
 $ ./i2c_test --host=192.168.1.44 --scan
 $ ./i2c_test --host=192.168.1.44 --mcp4728-test
 $ ./test_adc.py --channels=1 --mode=ramp --afe-coupling=DC --afe-attenuation=10X --pga-preamp=10 --pga-atten=10 --pga-bw=full --pga-offset=128
+$ ./test_glscopeclient.py
+$ glscopeclient --debug myscope:enjoy-digital:lan:127.0.0.1
 ```
