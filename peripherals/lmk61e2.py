@@ -72,17 +72,19 @@ class LMK61E2Driver:
         self.i2c  = I2CDriver(bus=bus, name=name)
         self.addr = addr
 
-    def init(self, config):
-        print("Configure PLL I2C...")
+    def init(self, config, debug=False):
         for reg, value in config.items():
-            print(f"0x{reg:02x}", end="")
+            if debug:
+                print(f"0x{reg:02x}", end="")
             ack = 0
             while (not ack):
-                print(".", end="")
+                if debug:
+                    print(".", end="")
                 sys.stdout.flush()
                 self.i2c.start_cond()
                 ack =  self.i2c.write(I2C_W_ADDR(self.addr))
                 ack &= self.i2c.write(reg)
                 ack &= self.i2c.write(value)
                 self.i2c.stop_cond()
-            print("")
+            if debug:
+                print("")

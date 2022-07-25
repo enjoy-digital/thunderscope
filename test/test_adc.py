@@ -23,19 +23,24 @@ from peripherals.had1511_adc import *
 
 from test_i2c import *
 
-# Frontend Constants -------------------------------------------------------------------------------
+# Acronyms:
+# AFE: Analog Front-End.
+# ADC: Analog to Digital Converter.
+# PGA: Programmable Gain Amplifier.
 
-FRONTEND_CONTROL_LDO_EN      = (1 <<  0)
-FRONTEND_CONTROL_COUPLING    = (1 <<  8)
-FRONTEND_CONTROL_ATTENUATION = (1 << 16)
+# AFE Frontend Constants ---------------------------------------------------------------------------
 
-FRONTEND_STATUS_LDO_PWR_GOOD = (1 <<  0)
+AFE_CONTROL_LDO_EN      = (1 <<  0)
+AFE_CONTROL_COUPLING    = (1 <<  8)
+AFE_CONTROL_ATTENUATION = (1 << 16)
 
-FRONTEND_AC_COUPLING = 0
-FRONTEND_DC_COUPLING = 1
+AFE_STATUS_LDO_PWR_GOOD = (1 <<  0)
 
-FRONTEND_1X_ATTENUATION  = 0
-FRONTEND_10X_ATTENUATION = 1
+AFE_AC_COUPLING = 0
+AFE_DC_COUPLING = 1
+
+AFE_1X_ATTENUATION  = 0
+AFE_10X_ATTENUATION = 1
 
 # ADC Constants ------------------------------------------------------------------------------------
 
@@ -46,52 +51,54 @@ ADC_CONTROL_PWR_DOWN = (1 <<  3)
 
 ADC_STATUS_LDO_PWR_GOOD = (1 <<  0)
 
-# Frontend Configure -------------------------------------------------------------------------------
+# AFE Configure ------------------------------------------------------------------------------------
 
-def frontend_configure(host, port, channel, coupling, attenuation):
+def afe_configure(host, port, channel, coupling, attenuation):
     bus = RemoteClient(host=host, port=port)
     bus.open()
+
+    print("Analog Front-End (AFE) Configuration...")
+    print("---------------------------------------")
 
     # LDO.
     def configure_ldo(enable):
         control_value  = bus.regs.frontend_control.read()
-        control_value &= ~(     1 * FRONTEND_CONTROL_LDO_EN)
-        control_value |=  (enable * FRONTEND_CONTROL_LDO_EN)
+        control_value &= ~(     1 * AFE_CONTROL_LDO_EN)
+        control_value |=  (enable * AFE_CONTROL_LDO_EN)
         bus.regs.frontend_control.write(control_value)
 
+    print("- Enabling LDO.")
     configure_ldo(1)
 
     # Coupling.
     def configure_coupling(channel, coupling):
         value = {
-            "AC" : FRONTEND_AC_COUPLING,
-            "DC" : FRONTEND_DC_COUPLING,
+            "AC" : AFE_AC_COUPLING,
+            "DC" : AFE_DC_COUPLING,
         }[coupling.upper()]
         control_value  = bus.regs.frontend_control.read()
-        control_value &= ~((    1 << channel) * FRONTEND_CONTROL_COUPLING)
-        control_value |=  ((value << channel) * FRONTEND_CONTROL_COUPLING)
+        control_value &= ~((    1 << channel) * AFE_CONTROL_COUPLING)
+        control_value |=  ((value << channel) * AFE_CONTROL_COUPLING)
         bus.regs.frontend_control.write(control_value)
 
+    print(f"- Coupling: {coupling}.")
     configure_coupling(channel, coupling)
 
     # Attenuation.
     def configure_attenuation(channel, attenuation):
         value = {
-            "1X"  :  FRONTEND_1X_ATTENUATION,
-            "10X" : FRONTEND_10X_ATTENUATION,
+            "1X"  :  AFE_1X_ATTENUATION,
+            "10X" : AFE_10X_ATTENUATION,
         }[attenuation.upper()]
-        print(value)
         control_value  = bus.regs.frontend_control.read()
-        print(f"0b{control_value:032b}")
-        control_value &= ~((    1 << channel) * FRONTEND_CONTROL_ATTENUATION)
-        print(f"0b{control_value:032b}")
-        control_value |=  ((value << channel) * FRONTEND_CONTROL_ATTENUATION)
-        print(f"0b{control_value:032b}")
+        control_value &= ~((    1 << channel) * AFE_CONTROL_ATTENUATION)
+        control_value |=  ((value << channel) * AFE_CONTROL_ATTENUATION)
         bus.regs.frontend_control.write(control_value)
 
+    print(f"- Attenuation: {attenuation}.")
     configure_attenuation(channel, attenuation)
 
-    print(f"0b{bus.regs.frontend_control.read():032b}")
+    print("")
 
     bus.close()
 
@@ -101,86 +108,100 @@ def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
+    print("Programmable Gain Amplifier (PGA) Configuration...")
+    print("--------------------------------------------------")
+
     # Programmable Gain Amplifier.
+    print(f"- Preamp      : +{preamp_db}dB.")
+    print(f"- Attenuation : -{atten_db}dB.")
+    print(f"- Bandwidth   : {bw_mhz}MHz.")
     pga = LMH6518Driver(bus=bus, name="frontend_spi")
     pga.set(channel, preamp_db, atten_db, bw_mhz)
+
+    print("")
 
     bus.close()
 
 # ADC Configure ------------------------------------------------------------------------------------
 
-def adc_configure(host, port):
+def adc_configure(host, port, channel, mode):
+    assert mode in ["capture", "ramp"]
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
+    print("Analog to Digital Converter (ADC) Configuration...")
+    print("--------------------------------------------------")
+
     # LDO.
     def configure_ldo(enable):
-        print("Configure LDO EN...")
         control_value  = bus.regs.adc_control.read()
         control_value &= ~(     1 * ADC_CONTROL_LDO_EN)
         control_value |=  (enable * ADC_CONTROL_LDO_EN)
         bus.regs.adc_control.write(control_value)
 
+    print("- Enabling ADC LDO.")
     configure_ldo(1)
 
     # PLL.
     def configure_pll(enable):
-        print("Configure PLL EN...")
         control_value  = bus.regs.adc_control.read()
         control_value &= ~(     1 * ADC_CONTROL_PLL_EN)
         control_value |=  (enable * ADC_CONTROL_PLL_EN)
         bus.regs.adc_control.write(control_value)
 
+    print("- Enabling LMK61E2 PLL.")
     configure_pll(1)
 
+    print("- Configuring LMK61E2 PLL (I2C)...")
     lmk61e2 = LMK61E2Driver(bus=bus, name="i2c", addr=LMK61E2_I2C_ADDR)
     lmk61e2.init(config=LMK61E2_I2C_CONF)
 
-    # RST.
-    def configure_rst(enable):
-        print("Configure RST...")
-        control_value  = bus.regs.adc_control.read()
-        control_value &= ~(     1 * ADC_CONTROL_RST)
-        control_value |=  (enable * ADC_CONTROL_RST)
-        bus.regs.adc_control.write(control_value)
-
-    configure_rst(0)
-
     # PWR_DOWN.
     def configure_pwr_down(enable):
-        print("Configure PWR_DOWN...")
         control_value  = bus.regs.adc_control.read()
         control_value &= ~(     1 * ADC_CONTROL_PWR_DOWN)
         control_value |=  (enable * ADC_CONTROL_PWR_DOWN)
         bus.regs.adc_control.write(control_value)
 
+    print("- Power-Up HAD1511...")
     configure_pwr_down(0)
+
+    # RST.
+    def configure_rst(enable):
+        control_value  = bus.regs.adc_control.read()
+        control_value &= ~(     1 * ADC_CONTROL_RST)
+        control_value |=  (enable * ADC_CONTROL_RST)
+        bus.regs.adc_control.write(control_value)
+
+    print("- Reset HAD1511...")
+    configure_rst(0)
 
 
     # HAD1511.
-    print("Configure HAD1511...")
-
-    n = 0
+    print("- Configure HAD1511 (SPI)...")
     spi = SPIDriver(bus=bus, name="adc_spi")
     adc = HAD1511ADCDriver(bus, spi, n=0)
     adc.reset()
-    adc.data_mode(n={1: [n], 2: [0, 1], 4: [0, 1]}[4])
-    adc.enable_ramp_pattern()
-    #adc.enable_sync_pattern()
-    for i in range(8):
-        print(adc.get_samplerate(duration=0.5))
+    adc.data_mode(n=channel)
+    if mode == "ramp":
+        adc.enable_ramp_pattern()
 
-    # Delay calibration.
+    print("- Checking HAD1511 Samplerate...")
+    msps = adc.get_samplerate(duration=0.5)
+    print(f"{msps/1e6:3.2f} MSPS")
+
+    print("- Checking HAD1511<->FPGA Synchronization...")
     bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_RST)
     bitslip_count_last = bus.regs.adc_had1511_bitslip_count.read()
     for d in range(32):
         bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_INC)
-        time.sleep(0.2)
+        time.sleep(0.01)
         bitslip_count = bus.regs.adc_had1511_bitslip_count.read()
         bitslip_diff  = (bitslip_count - bitslip_count_last) # FIXME: Handle rollover.
         bitslip_count_last = bitslip_count
-        print(f"Delay {d} / BitSlip Errors: {bitslip_diff}")
-
+        print("1" if bitslip_diff == 0 else "0", end="")
+        sys.stdout.flush()
+    print("")
     bus.regs.adc_had1511_control.write(HAD1511_CORE_CONTROL_DELAY_RST)
 
     trigger = TriggerDriver(bus)
@@ -196,27 +217,34 @@ def main():
     parser.add_argument("--host",    default="localhost",   help="Host ip address")
     parser.add_argument("--port",    default="1234",        help="Host bind port.")
 
-    parser.add_argument("--channel",     default="0",  help="Select Channel.")
-    parser.add_argument("--coupling",    default="AC", help="Set Frontend Coupling: AC (default) or DC.")
-    parser.add_argument("--attenuation", default="1X", help="Set Frontend Attenuation: 1X (default) or 10X.")
+    parser.add_argument("--channels", default="0",       help="ADC Channels: 0 (default), 1, 2, 3 or combinations (01, 23, 0123).")
+    parser.add_argument("--mode",     default="capture", help="ADC Mode: capture (default), ramp.")
 
-    parser.add_argument("--pga-preamp",  default="10",   help="Set PGA Preamp Gain (dB), 10 or 30.")
-    parser.add_argument("--pga-atten",   default="10",   help="Set PGA Attenuation (dB), 0 to 20 (with 2 increment).")
-    parser.add_argument("--pga-bw",      default="full", help="Set PGA Bandwidth (MHz), 20, 100, 200, full.")
+    parser.add_argument("--afe-coupling",    default="AC", help="AFE Coupling: AC (default) or DC.")
+    parser.add_argument("--afe-attenuation", default="1X", help="AFE Attenuation: 1X (default) or 10X.")
+
+    parser.add_argument("--pga-preamp",  default="10",   help="PGA Preamp Gain (dB), 10 or 30.")
+    parser.add_argument("--pga-atten",   default="10",   help="PGA Attenuation (dB), 0 to 20 (with 2 increment).")
+    parser.add_argument("--pga-bw",      default="full", help="PGA Bandwidth (MHz), 20, 100, 200, full.")
+
 
     args = parser.parse_args()
 
+    # Parameters.
     host = args.host
     port = int(args.port, 0)
+    assert len(args.channels) == 1 # FIXME: Allow multiple channels.
+    channel = int(args.channels, 0)
+    mode    = args.mode
 
-    channel = int(args.channel, 0)
-
-    frontend_configure(host=host, port=port,
+    # Analog Frontend-Configuration.
+    afe_configure(host=host, port=port,
         channel     = channel,
-        coupling    = args.coupling,
-        attenuation = args.attenuation,
+        coupling    = args.afe_coupling,
+        attenuation = args.afe_attenuation,
     )
 
+    # PGA configuration.
     preamp_db = int(args.pga_preamp, 0)
     atten_db  = int(args.pga_atten,  0)
     if args.pga_bw == "full":
@@ -230,7 +258,8 @@ def main():
         bw_mhz    = bw_mhz,
     )
 
-    adc_configure(host=host, port=port)
+    # ADC Configuration
+    adc_configure(host=host, port=port, channel=channel, mode=mode)
 
 if __name__ == "__main__":
     main()
