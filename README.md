@@ -47,7 +47,7 @@ $ litex_server --jtag --jtag-config=openocd_xc7_ft232.cfg
 ```
 Over PCIeBone (on remote machine):
 ```sh
-$ sudo litex_server --pcie --pcie-bar=03:00.0 --bind-ip=192.168.1.44
+$ sudo litex_server --pcie --pcie-bar=0x:00.0
 ```
 
 [> Run test scripts
@@ -56,5 +56,5 @@ $ sudo litex_server --pcie --pcie-bar=03:00.0 --bind-ip=192.168.1.44
 $ cd test
 $ ./i2c_test --host=192.168.1.44 --scan
 $ ./i2c_test --host=192.168.1.44 --mcp4728-test
-$ ./test_adc.py --channels=1 --mode=ramp --afe-coupling=DC --afe-attenuation=10X --pga-preamp=10 --pga-atten=10 --pga-bw=full
+$ ./test_adc.py --channels=1 --mode=ramp --afe-coupling=DC --afe-attenuation=10X --pga-preamp=10 --pga-atten=10 --pga-bw=full --pga-offset=128
 ```

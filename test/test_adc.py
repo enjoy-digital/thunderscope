@@ -17,6 +17,7 @@ sys.path.append("..")
 from peripherals.spi import *
 from peripherals.i2c import *
 from peripherals.lmh6518 import *
+from peripherals.mcp4728 import *
 from peripherals.lmk61e2 import *
 from peripherals.trigger import *
 from peripherals.had1511_adc import *
@@ -104,7 +105,7 @@ def afe_configure(host, port, channel, coupling, attenuation):
 
 # PGA Configure ------------------------------------------------------------------------------------
 
-def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz):
+def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz, offset):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
@@ -115,8 +116,17 @@ def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz):
     print(f"- Preamp      : +{preamp_db}dB.")
     print(f"- Attenuation : -{atten_db}dB.")
     print(f"- Bandwidth   : {bw_mhz}MHz.")
+    print(f"- Offset      : {offset}.")
+
+    # LMH6518.
+    print("- Configuring LMH6518 (SPI)...")
     pga = LMH6518Driver(bus=bus, name="frontend_spi")
     pga.set(channel, preamp_db, atten_db, bw_mhz)
+
+    # MCP4728.
+    print("- Configuring MCP4728 (I2C)...")
+    dac = MCP4728Driver(bus=bus, name="i2c", addr=MCP4728_I2C_ADDR)
+    dac.set_ch(n=channel, value=offset)
 
     print("")
 
@@ -163,7 +173,7 @@ def adc_configure(host, port, channel, mode):
         control_value |=  (enable * ADC_CONTROL_PWR_DOWN)
         bus.regs.adc_control.write(control_value)
 
-    print("- Power-Up HAD1511...")
+    print("- Enabling HAD1511.")
     configure_pwr_down(0)
 
     # RST.
@@ -173,12 +183,12 @@ def adc_configure(host, port, channel, mode):
         control_value |=  (enable * ADC_CONTROL_RST)
         bus.regs.adc_control.write(control_value)
 
-    print("- Reset HAD1511...")
+    print("- Reseting HAD1511.")
     configure_rst(0)
 
 
     # HAD1511.
-    print("- Configure HAD1511 (SPI)...")
+    print("- Configuring HAD1511 (SPI)...")
     spi = SPIDriver(bus=bus, name="adc_spi")
     adc = HAD1511ADCDriver(bus, spi, n=0)
     adc.reset()
@@ -226,7 +236,7 @@ def main():
     parser.add_argument("--pga-preamp",  default="10",   help="PGA Preamp Gain (dB), 10 or 30.")
     parser.add_argument("--pga-atten",   default="10",   help="PGA Attenuation (dB), 0 to 20 (with 2 increment).")
     parser.add_argument("--pga-bw",      default="full", help="PGA Bandwidth (MHz), 20, 100, 200, full.")
-
+    parser.add_argument("--pga-offset",  default="0",    help="PGA Offset (0 to 4095).")
 
     args = parser.parse_args()
 
@@ -251,11 +261,13 @@ def main():
         bw_mhz = 900
     else:
         bw_mhz = int(args.pga_bw, 0)
+    offset = int(args.pga_offset) # FIXME: in V/div?
     pga_configure(host=host, port=port,
         channel   = channel,
         preamp_db = preamp_db,
         atten_db  = atten_db,
         bw_mhz    = bw_mhz,
+        offset    = offset,
     )
 
     # ADC Configuration
