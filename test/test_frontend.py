@@ -14,6 +14,7 @@ from litex import RemoteClient
 
 sys.path.append("..")
 from peripherals.spi import *
+from peripherals.lmh6518 import *
 
 # Frontend Constants -------------------------------------------------------------------------------
 
@@ -95,58 +96,12 @@ def frontend_configure(host, port, channel, coupling, attenuation):
 
 # PGA Configure ------------------------------------------------------------------------------------
 
-class LMH6518Driver:
-    def __init__(self, bus):
-        self.spi = SPIDriver(bus=bus, name="frontend_spi")
-
-    def set(self, channel, preamp_db=10, atten_db=10, bw_mhz=900):
-        # Compute Configuration Fields.
-        preamp_field =  {
-            10 : 0b0,
-            30 : 0b1,
-        }[preamp_db]
-        atten_field = {
-            0  : 0b0000,
-            2  : 0b0001,
-            4  : 0b0010,
-            6  : 0b0011,
-            8  : 0b0100,
-            10 : 0b0101,
-            12 : 0b0110,
-            14 : 0b0111,
-            16 : 0b1000,
-            18 : 0b1001,
-            20 : 0b1010,
-        }[atten_db]
-        bw_field = {
-             900 : 0b000,
-              20 : 0b001,
-             100 : 0b010,
-             200 : 0b011,
-             350 : 0b100,
-             650 : 0b100,
-             750 : 0b110,
-        }[bw_mhz]
-
-        # Prepare SPI Data.
-        cmd_field = 0
-        dat_field = 0
-        dat_field |= (           1 << 10) # Aux Hi-Z.
-        dat_field |= (bw_field     <<  6) # Filter.
-        dat_field |= (preamp_field <<  4) # Preamp.
-        dat_field |= (atten_field  <<  0) # Attenuation.
-        spi_data  = []
-        spi_data.append(cmd_field)
-        spi_data.append((dat_field >> 8) & 0xff)
-        spi_data.append((dat_field >> 0) & 0xff)
-        self.spi.write(cs=channel, data=spi_data)
-
 def pga_configure(host, port, channel, preamp_db, atten_db, bw_mhz):
     bus = RemoteClient(host=host, port=port)
     bus.open()
 
     # Programmable Gain Amplifier.
-    pga = LMH6518Driver(bus)
+    pga = LMH6518Driver(bus=bus, name="frontend_spi")
     pga.set(channel, preamp_db, atten_db, bw_mhz)
 
     bus.close()
