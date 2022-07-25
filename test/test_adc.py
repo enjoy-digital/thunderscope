@@ -16,6 +16,7 @@ import sys
 sys.path.append("..")
 from peripherals.spi import *
 from peripherals.i2c import *
+from peripherals.lmk61e2 import *
 from peripherals.trigger import *
 from peripherals.had1511_adc import *
 
@@ -56,66 +57,8 @@ def adc_configure(host, port):
 
     configure_pll(1)
 
-    # PLL I2C.
-    class LMK61E2:
-        # From configuration tool (Reg : Value).
-        conf = {
-            0x00 : 0x10,
-            0x01 : 0x0b,
-            0x02 : 0x33,
-            0x08 : 0xb0,
-            0x09 : 0x01,
-            0x10 : 0x00,
-            0x11 : 0x80,
-            0x15 : 0x01,
-            0x16 : 0x00,
-            0x17 : 0x05,
-            0x19 : 0x00,
-            0x1a : 0x32,
-            0x1b : 0x00,
-            0x1c : 0x00,
-            0x1d : 0x00,
-            0x1e : 0x00,
-            0x1f : 0x00,
-            0x20 : 0x01,
-            0x21 : 0x0c,
-            0x22 : 0x28,
-            0x23 : 0x03,
-            0x24 : 0x08,
-            0x25 : 0x00,
-            0x26 : 0x00,
-            0x27 : 0x00,
-            0x2f : 0x00,
-            0x30 : 0x00,
-            0x31 : 0x10,
-            0x32 : 0x00,
-            0x33 : 0x00,
-            0x34 : 0x00,
-            0x35 : 0x00,
-            0x38 : 0x00,
-            0x48 : 0x02,
-        }
-        def __init__(self, addr):
-            self.addr = addr
-            self.i2c  = I2CDriver(bus=bus, name="i2c")
-
-        def init(self):
-            print("Configure PLL I2C...")
-            for reg, value in self.conf.items():
-                print(f"0x{reg:02x}", end="")
-                ack = 0
-                while (not ack):
-                    print(".", end="")
-                    sys.stdout.flush()
-                    self.i2c.start_cond()
-                    ack =  self.i2c.write(I2C_W_ADDR(self.addr))
-                    ack &= self.i2c.write(reg)
-                    ack &= self.i2c.write(value)
-                    self.i2c.stop_cond()
-                print("")
-
-    lmk61e2 = LMK61E2(addr=LMK61E2_I2C_ADDR)
-    lmk61e2.init()
+    lmk61e2 = LMK61E2Driver(bus=bus, name="i2c", addr=LMK61E2_I2C_ADDR)
+    lmk61e2.init(config=LMK61E2_I2C_CONF)
 
     # RST.
     def configure_rst(enable):
