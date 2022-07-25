@@ -14,8 +14,9 @@ from litex import RemoteClient
 
 import sys
 sys.path.append("..")
-from peripherals.had1511_adc import *
+from peripherals.spi import *
 from peripherals.trigger import *
+from peripherals.had1511_adc import *
 
 from test_i2c import *
 
@@ -27,33 +28,6 @@ ADC_CONTROL_RST      = (1 <<  2)
 ADC_CONTROL_PWR_DOWN = (1 <<  3)
 
 ADC_STATUS_LDO_PWR_GOOD = (1 <<  0)
-
-# ADC SPI Driver -----------------------------------------------------------------------------------
-
-SPI_CONTROL_START  = (1 << 0)
-SPI_CONTROL_LENGTH = (1 << 8)
-SPI_STATUS_DONE    = (1 << 0)
-
-class ADCSPIDriver:
-    def __init__(self, bus):
-        self.bus = bus
-
-    def write(self, cs, data):
-        assert len(data) <= 3
-        # Convert data to bytes (if not already).
-        data = data if isinstance(data, (bytes, bytearray)) else bytes(data)
-        # Set Chip Select.
-        self.bus.regs.adc_spi_cs.write((1 << cs))
-        # Prepare MOSI data.
-        mosi_bits = len(data)*8
-        mosi_data = int.from_bytes(data, byteorder="big")
-        mosi_data <<= (24 - mosi_bits)
-        self.bus.regs.adc_spi_mosi.write(mosi_data)
-        # Start SPI Xfer.
-        self.bus.regs.adc_spi_control.write(mosi_bits*SPI_CONTROL_LENGTH | SPI_CONTROL_START)
-        # Wait SPI Xfer to be done.
-        while not (self.bus.regs.adc_spi_status.read() & SPI_STATUS_DONE):
-            pass
 
 # ADC Configure ------------------------------------------------------------------------------------
 
@@ -167,7 +141,7 @@ def adc_configure(host, port):
     print("Configure HAD1511...")
 
     n = 0
-    spi = ADCSPIDriver(bus)
+    spi = SPIDriver(bus=bus, name="adc_spi")
     adc = HAD1511ADCDriver(bus, spi, n=0)
     adc.reset()
     adc.data_mode(n={1: [n], 2: [0, 1], 4: [0, 1]}[4])

@@ -12,6 +12,9 @@ import argparse
 
 from litex import RemoteClient
 
+sys.path.append("..")
+from peripherals.spi import *
+
 # Frontend Constants -------------------------------------------------------------------------------
 
 FRONTEND_CONTROL_LDO_EN      = (1 <<  0)
@@ -25,33 +28,6 @@ FRONTEND_DC_COUPLING = 1
 
 FRONTEND_1X_ATTENUATION  = 0
 FRONTEND_10X_ATTENUATION = 1
-
-# Frontend SPI Driver ------------------------------------------------------------------------------
-
-SPI_CONTROL_START  = (1 << 0)
-SPI_CONTROL_LENGTH = (1 << 8)
-SPI_STATUS_DONE    = (1 << 0)
-
-class FrontendSPIDriver:
-    def __init__(self, bus):
-        self.bus = bus
-
-    def write(self, cs, data):
-        assert len(data) <= 3
-        # Convert data to bytes (if not already).
-        data = data if isinstance(data, (bytes, bytearray)) else bytes(data)
-        # Set Chip Select.
-        self.bus.regs.frontend_spi_cs.write((1 << cs))
-        # Prepare MOSI data.
-        mosi_bits = len(data)*8
-        mosi_data = int.from_bytes(data, byteorder="big")
-        mosi_data <<= (24 - mosi_bits)
-        self.bus.regs.frontend_spi_mosi.write(mosi_data)
-        # Start SPI Xfer.
-        self.bus.regs.frontend_spi_control.write(mosi_bits*SPI_CONTROL_LENGTH | SPI_CONTROL_START)
-        # Wait SPI Xfer to be done.
-        while not (self.bus.regs.frontend_spi_status.read() & SPI_STATUS_DONE):
-            pass
 
 # Frontend LDO Test --------------------------------------------------------------------------------
 
@@ -121,7 +97,7 @@ def frontend_configure(host, port, channel, coupling, attenuation):
 
 class LMH6518Driver:
     def __init__(self, bus):
-        self.spi = FrontendSPIDriver(bus)
+        self.spi = SPIDriver(bus=bus, name="frontend_spi")
 
     def set(self, channel, preamp_db=10, atten_db=10, bw_mhz=900):
         # Compute Configuration Fields.
