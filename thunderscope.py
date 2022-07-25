@@ -199,7 +199,13 @@ class CRG(Module):
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCMini):
-    def __init__(self, sys_clk_freq=int(125e6), with_pcie=True, with_frontend=True, with_adc=True, with_jtagbone=True, with_analyzer=False):
+    def __init__(self, sys_clk_freq=int(125e6),
+        with_pcie     = True,
+        with_frontend = True,
+        with_adc      = True,
+        with_jtagbone = True,
+        with_analyzer = True,
+    ):
         platform = Platform()
 
         # CRG --------------------------------------------------------------------------------------
@@ -249,7 +255,6 @@ class BaseSoC(SoCMini):
             self.icap.add_reload()
             self.icap.add_timing_constraints(platform, sys_clk_freq, self.crg.cd_sys.clk)
 
-
         # Frontend / ADC ---------------------------------------------------------------------------
 
         # I2C Bus:
@@ -258,12 +263,12 @@ class BaseSoC(SoCMini):
         self.submodules.i2c = I2CMaster(platform.request("i2c"))
 
         # Probe Compensation.
-#        self.submodules.probe_compensation = PWM(
-#            pwm = platform.request("fe_probe_compensation"),
-#            default_enable = 1,
-#            default_width  = int(1e-3*sys_clk_freq/2),
-#            default_period = int(1e-3*sys_clk_freq)
-#        )
+        self.submodules.probe_compensation = PWM(
+            pwm = platform.request("fe_probe_compensation"),
+            default_enable = 1,
+            default_width  = int(1e-3*sys_clk_freq/2),
+            default_period = int(1e-3*sys_clk_freq)
+        )
 
         # Frontend.
         if with_frontend:
@@ -392,14 +397,6 @@ class BaseSoC(SoCMini):
 
                     # HAD1511.
                     self.submodules.had1511 = HAD1511ADC(data_pads, sys_clk_freq, lanes_polarity=[1, 1, 0, 1, 1, 1, 1, 1])
-
-                    # Debug: Output ADC Frame Clk on Probe Compensation to monitor PLL config -> PLL Clk = 2 * 4 * 2 = 16X generated ClK.
-                    probe_comp = platform.request("fe_probe_compensation")
-                    self.sync += [
-                        If(self.had1511.source.valid & self.had1511.source.ready,
-                            probe_comp.eq(~probe_comp)
-                        )
-                    ]
 
                     # Gate/Data-Width Converter.
                     self.submodules.gate = stream.Gate([("data", 64)], sink_ready_when_disabled=True)
