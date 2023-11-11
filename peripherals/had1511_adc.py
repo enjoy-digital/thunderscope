@@ -3,6 +3,8 @@
 #
 # Copyright (c) 2020-2021 Felix Domke <tmbinc@elitedvb.net>
 # Copyright (c) 2021 Florent Kermarrec <florent@enjoy-digital.fr>
+# Copyright (c) 2023 John Simons <john@totalitee.nl>
+
 # SPDX-License-Identifier: BSD-2-Clause
 
 import time
@@ -334,7 +336,7 @@ class HAD1511ADCDriver:
         self.control.write(HAD1511_CORE_CONTROL_FRAME_RST)
 
     def set_reg(self, reg, value):
-        self.spi.write(0, [reg, (value >> 8) & 0xff, value & 0xff])
+        self.spi.write(5, [reg, (value >> 8) & 0xff, value & 0xff])
 
     def set_gain(self, gain):
         if self.mode == "single":
