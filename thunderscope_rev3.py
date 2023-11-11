@@ -46,7 +46,7 @@ _io = [
     #("user_led_n", 0, Pins("U21"), IOStandard("LVCMOS33")), # Green.
     #("user_led_n", 1, Pins("R17"), IOStandard("LVCMOS33")), # Red.
     #("user_led_n", 2, Pins("Y22"), IOStandard("LVCMOS33")), # Green.
-    ("user_led_n", 3, Pins("T21"), IOStandard("LVCMOS33")), # Red.
+    ("user_led_n", 0, Pins("T21"), IOStandard("LVCMOS33")), # Red.
 
     # PCIe / Gen2 X4.
     # ---------------
@@ -70,12 +70,8 @@ _io = [
     ("fe_control", 0,
         Subsignal("ldo_en",      Pins("K6"), IOStandard("LVCMOS33")), # TPS7A9101/LDO & LM27761 Enable.
         Subsignal("coupling",    Pins("H20 K19 H19 N18"), IOStandard("LVCMOS33")),
-        Subsignal("attenuation", Pins("G20 K18 J19 K18"), IOStandard("LVCMOS33")),
+        Subsignal("attenuation", Pins("G20 K18 J19 N19"), IOStandard("LVCMOS33")),
         # TODO: termination N18 L19 L21 M18
-        IOStandard("LVCMOS33"),
-    ),
-    ("fe_status", 0,
-        Subsignal("ldo_pg", Pins("J5"), IOStandard("LVCMOS33")), # TPS7A9101/LDO Power-Good.
         IOStandard("LVCMOS33"),
     ),
     # Programmable Gain Amplifier SPI.
@@ -106,12 +102,6 @@ _io = [
     ("adc_control", 0,
         Subsignal("ldo_en", Pins("J20")), # TPS7A9101/LDO Enable.
         Subsignal("pll_en", Pins("K14")), # LMK61E2/PLL Output Enable.
-        Subsignal("pd",     Pins("N19")), # ADC Power Down.
-        Subsignal("rst_n",  Pins("N18")), # ADC Reset.
-        IOStandard("LVCMOS33"),
-    ),
-    ("adc_status", 0,
-        Subsignal("ldo_pg", Pins("L18")), # TPS7A9101/LDO Power-Good.
         IOStandard("LVCMOS33"),
     ),
     # ("adc_spi", 0,
@@ -293,7 +283,7 @@ class BaseSoC(SoCMini):
         if with_frontend:
 
             class Frontend(Module, AutoCSR):
-                def __init__(self, control_pads, status_pads, spi_bus, sys_clk_freq):
+                def __init__(self, control_pads, spi_bus, sys_clk_freq):
                     # Control/Status.
                     self._control = CSRStorage(fields=[
                         CSRField("ldo_en", offset=0, size=1, description="Frontend LDO-Enable.", values=[
@@ -320,7 +310,7 @@ class BaseSoC(SoCMini):
 
                     # Power.
                     self.comb += control_pads.ldo_en.eq(self._control.fields.ldo_en)
-                    self.comb += self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
+                    #self.comb += self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
 
                     # Coupling.
                     self.comb += control_pads.coupling.eq(self._control.fields.coupling)
@@ -334,8 +324,7 @@ class BaseSoC(SoCMini):
 
             self.submodules.frontend = Frontend(
                 control_pads     = platform.request("fe_control"),
-                status_pads      = platform.request("fe_status"),
-                spi_bus          = spi_bus
+                spi_bus          = spi_bus,
                 sys_clk_freq     = sys_clk_freq,
             )
 
@@ -343,7 +332,7 @@ class BaseSoC(SoCMini):
         if with_adc:
 
             class ADC(Module, AutoCSR):
-                def __init__(self, control_pads, status_pads, spi_bus, data_pads, sys_clk_freq,
+                def __init__(self, control_pads, spi_bus, data_pads, sys_clk_freq,
                     data_width   = 128,
                 ):
 
@@ -384,14 +373,12 @@ class BaseSoC(SoCMini):
                     self.comb += [
                         control_pads.ldo_en.eq(self._control.fields.ldo_en),
                         control_pads.pll_en.eq(self._control.fields.pll_en),
-                        control_pads.rst_n.eq(~self._control.fields.rst),
-                        control_pads.pd.eq(self._control.fields.pwr_down),
                     ]
 
                     # Status.
-                    self.comb += [
-                        self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
-                    ]
+                    #self.comb += [
+                    #    self._status.fields.ldo_pwr_good.eq(status_pads.ldo_pg)
+                    #]
 
                     # SPI.
                     self.submodules.spi = spi_bus
@@ -419,7 +406,6 @@ class BaseSoC(SoCMini):
 
             self.submodules.adc = ADC(
                 control_pads = platform.request("adc_control"),
-                status_pads  = platform.request("adc_status"),
                 spi_bus      = spi_bus,
                 data_pads    = platform.request("adc_data"),
                 sys_clk_freq = sys_clk_freq,
