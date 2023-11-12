@@ -14,6 +14,8 @@
 #                               D E F I N I T I O N S                                              #
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 
+import time
+
 I2C_SCL    = 0x01
 I2C_SDAOE  = 0x02
 I2C_SDAOUT = 0x04
@@ -24,10 +26,10 @@ I2C_WRITE = 0
 I2C_READ  = 1
 
 def I2C_W_ADDR(addr):
-    return (addr & 0x7f) << 1
+    return addr#(addr & 0x7f) << 1
 
 def I2C_R_ADDR(addr):
-    return ((addr & 0x7f) << 1) | 1
+    return addr#((addr & 0x7f) << 1) | 1
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
 #                                  G A T E W A R E                                                 #

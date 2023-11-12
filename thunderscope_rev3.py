@@ -68,7 +68,7 @@ _io = [
 
     # Control / Status.
     ("fe_control", 0,
-        Subsignal("ldo_en",      Pins("K6"), IOStandard("LVCMOS33")), # TPS7A9101/LDO & LM27761 Enable.
+        Subsignal("ldo_en",      Pins("J21"), IOStandard("LVCMOS33")), # TPS7A9101/LDO & LM27761 Enable.
         Subsignal("coupling",    Pins("H20 K19 H19 N18"), IOStandard("LVCMOS33")),
         Subsignal("attenuation", Pins("G20 K18 J19 N19"), IOStandard("LVCMOS33")),
         # TODO: termination N18 L19 L21 M18
@@ -145,7 +145,7 @@ class Platform(XilinxPlatform):
 
     def create_programmer(self, name='openocd'):
         if name == 'openocd':
-            return OpenOCD("openocd_xc7_ft232.cfg", "bscan_spi_xc7a35t.bit")
+            return OpenOCD("openocd_xc7_ft232.cfg", "bscan_spi_xc7a100t.bit")
         elif name == 'vivado':
             # TODO: some board versions may have s25fl128s
             return VivadoProgrammer(flash_part='s25fl256sxxxxxx0-spi-x1_x2_x4')
@@ -226,11 +226,11 @@ class BaseSoC(SoCMini):
 
         # Leds -------------------------------------------------------------------------------------
         self.submodules.leds = LedChaser(
-            pads         = platform.request_all("user_led_n"),
+            pads         = platform.request("user_led_n"),
             sys_clk_freq = sys_clk_freq,
             polarity     = 1,
         )
-        self.leds.add_pwm(default_width=128, default_period=1024) # Default to 1/8 to reduce brightness.
+        self.leds.add_pwm(default_width=1023, default_period=1024) # Default to 1/8 to reduce brightness.
 
         # PCIe -------------------------------------------------------------------------------------
         if with_pcie:
@@ -256,7 +256,7 @@ class BaseSoC(SoCMini):
         # I2C bus.
         # --------
         # - Trim DAC (MCP4728 @ 0xC0).
-        # - PLL      (LMK61E2 @ 0x58).
+        # - OLD: PLL      (LMK61E2 @ 0x58).
         # - ClockGen (ZL30250 @ 0xD8).
         # - TODO: Digi-pot @ 0x58.
         self.submodules.i2c = I2CMaster(platform.request("i2c"))
@@ -299,13 +299,6 @@ class BaseSoC(SoCMini):
                             ("``0b1``", "10X-Attenuation (one bit per channel)."),
                         ]),
                     ])
-                    self._status = CSRStatus(fields=[
-                        CSRField("ldo_pwr_good", offset=0, size=1, description="Frontend LDO-Power-Good Feedback.", values=[
-                            ("``0b0``", "LDO not powered."),
-                            ("``0b1``", "LDO power good."),
-                        ]),
-                    ])
-
                     # # #
 
                     # Power.
@@ -355,13 +348,6 @@ class BaseSoC(SoCMini):
                             ("``0b1``", "ADC in power-down mode."),
                         ]),
                     ])
-                    self._status = CSRStatus(fields=[
-                        CSRField("ldo_pwr_good", offset=0, size=1, description="ADC LDO-Power-Good Feedback.", values=[
-                            ("``0b0``", "LDO not powered."),
-                            ("``0b1``", "LDO power good."),
-                        ]),
-                    ])
-
                     # Data Source.
                     self.source = stream.Endpoint([("data", data_width)])
 

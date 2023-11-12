@@ -3,6 +3,8 @@
 #
 # Copyright (c) 2022 Florent Kermarrec <florent@enjoy-digital.fr>
 # Copyright (c) 2023 Aleksa Bjelogrlic <aleksa@eevengers.com>
+# Copyright (c) 2023 John Simons <john@totalitee.nl>
+
 # SPDX-License-Identifier: BSD-2-Clause
 
 import sys
@@ -71,7 +73,7 @@ class ZL30250Driver:
         self.i2c  = I2CDriver(bus=bus, name=name)
         self.addr = addr
 
-    def init(self, config, debug=False):
+    def init(self, config, debug=True):
         for reg, value in config.items():
             if debug:
                 print(f"0x{reg:02x}", end="")
@@ -81,7 +83,7 @@ class ZL30250Driver:
                     print(".", end="")
                 sys.stdout.flush()
                 self.i2c.start_cond()
-                ack =  self.i2c.write(I2C_W_ADDR(self.addr))
+                ack =  self.i2c.write(self.addr)
                 ack =  self.i2c.write(ZL30250_I2C_WRITE_COMMAND)
                 ack &= self.i2c.write(reg >> 8)
                 ack &= self.i2c.write(reg & 0xFF)
