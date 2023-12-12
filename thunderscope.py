@@ -149,9 +149,10 @@ class Platform(XilinxPlatform):
 
     def do_finalize(self, fragment):
         XilinxPlatform.do_finalize(self, fragment)
-        self.add_period_constraint(self.lookup_request("adc_data:lclk_p", loose=True), 1e9/500e6)
+        self.add_period_constraint(self.lookup_request("adc_data:lclk_p", loose=True), 1e9/1000e6)
 
 # CRG ----------------------------------------------------------------------------------------------
+
 
 class CRG(Module):
     def __init__(self, platform, sys_clk_freq):
@@ -179,9 +180,7 @@ class CRG(Module):
         # PLL.
         self.submodules.pll = pll = S7PLL(speedgrade=-1)
         self.comb += pll.reset.eq(self.rst)
-        #pll.register_clkin(cfgm_clk, cfgm_clk_freq)
         pll.register_clkin(platform.request("clk50"), 50e6)
-
         pll.create_clkout(self.cd_sys, sys_clk_freq)
         pll.create_clkout(self.cd_idelay, 200e6)
         platform.add_false_path_constraints(self.cd_sys.clk, pll.clkin) # Ignore sys_clk to pll.clkin path created by SoC's rst.
@@ -190,11 +189,29 @@ class CRG(Module):
 
         # IDELAYCTRL.
         self.submodules.idelayctrl = S7IDELAYCTRL(self.cd_idelay)
+        # self.rst          = Signal()
+        # self.cd_sys       = ClockDomain()
+        # self.cd_sys4x     = ClockDomain()
+        # self.cd_sys4x_dqs = ClockDomain()
+        # self.cd_idelay    = ClockDomain()
+
+        # # # #
+
+        # self.pll = pll = S7PLL(speedgrade=-2)
+        # self.comb += pll.reset.eq(self.rst)
+        # pll.register_clkin(platform.request("clk50"), 50e6)
+        # pll.create_clkout(self.cd_sys,       sys_clk_freq)
+        # pll.create_clkout(self.cd_sys4x,     4*sys_clk_freq)
+        # pll.create_clkout(self.cd_sys4x_dqs, 4*sys_clk_freq, phase=90)
+        # pll.create_clkout(self.cd_idelay,    200e6)
+        # platform.add_false_path_constraints(self.cd_sys.clk, pll.clkin) # Ignore sys_clk to pll.clkin path created by SoC's rst.
+
+        # self.idelayctrl = S7IDELAYCTRL(self.cd_idelay)
 
 # BaseSoC -----------------------------------------------------------------------------------------
 
 class BaseSoC(SoCMini):
-    def __init__(self, sys_clk_freq=int(100e6),
+    def __init__(self, sys_clk_freq=int(125e6),
         with_pcie     = True,
         with_frontend = True,
         with_adc      = True,
@@ -404,7 +421,6 @@ class BaseSoC(SoCMini):
                     self.adc.source,
                     self.adc.had1511.bitslip,
                     self.adc.had1511.fclk,
-                    self.submodules.i2c.pads
                 ]
                 self.submodules.analyzer = LiteScopeAnalyzer(analyzer_signals,
                     depth        = 1024,

@@ -73,9 +73,9 @@ def i2c_scan(host, port):
         control_value |=  (enable * ADC_CONTROL_PLL_EN)
         bus.regs.adc_control.write(control_value)
 
-     print("- Disabling ZL30250 LDO.")
+    print("- Disabling ZL30250 LDO.")
     configure_pll(0)
-    time.sleep(1000)
+    time.sleep(1)
 
     print("- Enabling ZL30250 PLL.")
     configure_pll(1)
