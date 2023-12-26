@@ -285,9 +285,10 @@ class HAD1511ADC(Module, AutoCSR):
                 ),
             ]
 
-        # BitSlips Count.
-        bitslip_count = self._bitslip_count.status
-        self.sync.adc_frame += bitslip_count.eq(bitslip_count + self.bitslip)
+        if pads is not None:
+            # BitSlips Count.
+            bitslip_count = self._bitslip_count.status
+            self.sync.adc_frame += bitslip_count.eq(bitslip_count + self.bitslip)
 
         # Samples Count.
         sample_count = self._sample_count.status
