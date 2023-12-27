@@ -311,7 +311,7 @@ def main():
         with_led_chaser =True,
         with_pcie       = args.with_pcie,
         with_frontend   = True,
-        with_adc        = False,
+        with_adc        = True,
         **parser.soc_argdict
     )
     if args.with_spi_sdcard:

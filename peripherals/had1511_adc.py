@@ -237,24 +237,26 @@ class HAD1511ADC(Module, AutoCSR):
             # Generate a Ramp Pattern when no pads are provided.
             for i in range(nchannels):
                 adc_data = Signal(8)
-                self.sync.adc_frame += adc_data.eq(adc_data + nchannels)
-                self.sync.adc_frame += adc_source.data[8*i:8*(i+1)].eq(adc_data + i)
+                self.sync += adc_data.eq(adc_data + nchannels)
+                self.sync += adc_source.data[8*i:8*(i+1)].eq(adc_data + i)
 
         # Clock Domain Crossing.
         # ----------------------
 
-        self.submodules.cdc = stream.ClockDomainCrossing(
-            layout  = [("data", nchannels*8)],
-            cd_from = "adc_frame",
-            cd_to   = clock_domain
-        )
-        self.comb += self.adc_source.connect(self.cdc.sink)
+        if pads is not None:
+            self.submodules.cdc = stream.ClockDomainCrossing(
+                layout  = [("data", nchannels*8)],
+                cd_from = "adc_frame",
+                cd_to   = clock_domain
+            )
+            self.comb += self.adc_source.connect(self.cdc.sink)
 
         # DownSampling.
         # -------------
 
         self.submodules.downsampling = DownSampling(ratio=self._downsampling.storage)
-        self.comb += self.cdc.source.connect(self.downsampling.sink)
+        if pads is not None:
+            self.comb += self.cdc.source.connect(self.downsampling.sink)
         self.comb += self.downsampling.source.connect(source)
         self.comb += self.downsampling.source.ready.eq(1) # No backpressure allowed.
 
