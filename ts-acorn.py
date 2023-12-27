@@ -56,7 +56,7 @@ class CRG(LiteXModule):
         platform.add_period_constraint(self.cd_sys.clk, 1e9/sys_clk_freq)
         platform.add_period_constraint(self.cd_idelay.clk, 1e9/200e6)
 
-        self.idelayctrl = S7IDELAYCTRL(self.cd_idelay)
+        #self.idelayctrl = S7IDELAYCTRL(self.cd_idelay)
 
 # GPIO
 _spi_io = [   
@@ -311,7 +311,7 @@ def main():
         with_led_chaser =True,
         with_pcie       = args.with_pcie,
         with_frontend   = True,
-        with_adc        = True,
+        with_adc        = False,
         **parser.soc_argdict
     )
     if args.with_spi_sdcard:
