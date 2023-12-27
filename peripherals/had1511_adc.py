@@ -243,20 +243,18 @@ class HAD1511ADC(Module, AutoCSR):
         # Clock Domain Crossing.
         # ----------------------
 
-        if pads is not None:
-            self.submodules.cdc = stream.ClockDomainCrossing(
-                layout  = [("data", nchannels*8)],
-                cd_from = "adc_frame",
-                cd_to   = clock_domain
-            )
-            self.comb += self.adc_source.connect(self.cdc.sink)
+        self.submodules.cdc = stream.ClockDomainCrossing(
+            layout  = [("data", nchannels*8)],
+            cd_from = "adc_frame" if pads is not None else clock_domain,
+            cd_to   = clock_domain
+        )
+        self.comb += self.adc_source.connect(self.cdc.sink)
 
         # DownSampling.
         # -------------
 
         self.submodules.downsampling = DownSampling(ratio=self._downsampling.storage)
-        if pads is not None:
-            self.comb += self.cdc.source.connect(self.downsampling.sink)
+        self.comb += self.cdc.source.connect(self.downsampling.sink)
         self.comb += self.downsampling.source.connect(source)
         self.comb += self.downsampling.source.ready.eq(1) # No backpressure allowed.
 
