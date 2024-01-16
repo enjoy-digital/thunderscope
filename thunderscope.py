@@ -272,7 +272,7 @@ class BaseSoC(SoCMini):
         # I2C Bus:
         # - Trim DAC (MCP4728 @ 0x61).
         # - PLL      (LMK61E2 @ 0x58).
-        self.submodules.i2c = I2CMaster(platform.request("i2c"))
+        self.i2c = I2CMaster(platform.request("i2c"))
 
         # Probe Compensation.
         self.submodules.probe_compensation = PWM(
